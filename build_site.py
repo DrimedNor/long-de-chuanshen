@@ -594,29 +594,14 @@ button:focus-visible, a:focus-visible{outline:2px solid var(--accent); outline-o
 .hn-link:hover{background:var(--surface-soft); color:var(--ink)}
 .hn-link:active{background:var(--surface-hover)}
 
-/* 首页退出确认框 */
-.exit-confirm-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99999;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .2s ease}
-.exit-confirm-overlay.show{opacity:1}
-.exit-confirm-box{background:var(--bg);border:1px solid var(--line);border-radius:16px;padding:24px;max-width:320px;width:85%;text-align:center;transform:scale(.9);transition:transform .2s ease}
-.exit-confirm-overlay.show .exit-confirm-box{transform:scale(1)}
-.exit-confirm-title{font-size:1.15em;font-weight:700;color:var(--ink);margin-bottom:8px}
-.exit-confirm-desc{font-size:.9em;color:var(--ink-soft);margin-bottom:20px}
-.exit-confirm-buttons{display:flex;gap:12px}
-.exit-confirm-btn{flex:1;padding:10px 0;border-radius:10px;border:none;font-size:.95em;cursor:pointer;font-family:inherit;transition:all .15s}
-.exit-confirm-btn.exit-cancel{background:var(--surface);color:var(--ink);border:1px solid var(--line)}
-.exit-confirm-btn.exit-cancel:hover{background:var(--surface-hover)}
-.exit-confirm-btn.exit-ok{background:var(--accent);color:#fff}
-.exit-confirm-btn.exit-ok:hover{opacity:.9}
-.exit-confirm-btn:active{transform:scale(.97)}
-
 /* 页面切换动画 */
-.content{animation:pageFadeIn .25s ease-out}
-@keyframes pageFadeIn{
-  from{opacity:0; transform:translateY(8px)}
-  to{opacity:1; transform:translateY(0)}
+.page-anim{animation:pageIn .25s ease both}
+@keyframes pageIn{
+  from{opacity:0; transform:translateY(10px)}
+  to{opacity:1; transform:none}
 }
 @media (prefers-reduced-motion: reduce){
-  .content{animation:none}
+  .page-anim{animation:none}
   button, .player-launch, .search-fab, .hn-link, .dir-group-header, .play-btn{transition:none}
   button:active, .player-launch:active, .search-fab:active{transform:none}
 }
@@ -1960,14 +1945,14 @@ document.addEventListener('touchend', function(e){
           var parentSlug = parts.join('/');
           // 如果上一级是目录，跳转到目录index
           if (bySlug[parentSlug + '/index']) {
-            show(parentSlug + '/index');
+            go(parentSlug + '/index');
           } else if (bySlug[parentSlug]) {
-            show(parentSlug);
+            go(parentSlug);
           } else {
-            show('index');
+            go('index');
           }
         } else {
-          show('index');
+          go('index');
         }
         // 阻止默认行为（防止浏览器后退）
         e.preventDefault();
@@ -2256,23 +2241,22 @@ function show(slug){
     currentSlug = slug;
     document.getElementById('pageCrumbs').textContent = ' / 页面未找到';
     document.getElementById('content').innerHTML = '<div class="article"><div class="page-404"><div class="page-404-code">404</div><div class="page-404-text">页面未找到</div><p>您访问的页面不存在或已被移动。</p><a class="page-404-home" href="#/index">返回首页</a></div></div>';
+    // 页面切换动画
+    var contentEl404 = document.getElementById('content');
+    contentEl404.classList.remove('page-anim');
+    void contentEl404.offsetWidth;
+    contentEl404.classList.add('page-anim');
     document.title = SITE_TITLE + ' · 页面未找到';
     window.scrollTo({top:0, behavior:'smooth'});
     return;
   }
   if (currentSlug === slug) return;
   currentSlug = slug;
-  // Hash 路由：更新 URL 使文章可被链接分享（replaceState 不触发 hashchange，避免循环）
-  var targetHash = '#/' + slug.split('/').map(encodeURIComponent).join('/');
-  if (location.hash !== targetHash) history.replaceState(null, '', targetHash);
   var meta = '';
   if (p.meta.author) meta += '<span>作者：' + esc(p.meta.author) + '</span>';
   if (p.meta.source_url) meta += '<span class="src"><a href="' + esc(p.meta.source_url) + '" target="_blank" rel="noopener">查看原文 ↗</a></span>';
   if (p.meta.tags && p.meta.tags.length) meta += p.meta.tags.map(function(t){return '<span class="tag">' + esc(t) + '</span>';}).join('');
   var isHome = (p.slug === 'index');
-  // 首页返回守卫：进入首页时激活，离开时移除
-  if (isHome) { if (typeof pushExitGuard === 'function') pushExitGuard(); }
-  else { if (typeof removeExitGuard === 'function') removeExitGuard(); }
   var titleHtml = p.is_index ? '' : '<h1>' + esc(p.title) + '</h1>';
   var metaHtml = meta ? '<div class="meta">' + meta + '</div>' : '';
   // 文章目录（TOC）：仅非目录页且有 h2/h3 标题时显示
@@ -2360,6 +2344,11 @@ function show(slug){
     inner += navHtml;
   }
   document.getElementById('content').innerHTML = '<div class="article">' + crumb + inner + '</div>';
+  // 页面切换动画：强制reflow后重启动画
+  var contentEl = document.getElementById('content');
+  contentEl.classList.remove('page-anim');
+  void contentEl.offsetWidth;
+  contentEl.classList.add('page-anim');
   document.getElementById('pageCrumbs').textContent = p.is_index ? '' : (' / ' + p.title);
   // 目录选中态：仅高亮「层级最深」的匹配项。
   // 当父目录（大标题，如「1 为何修行」）与子目录（如「1.1 诸行无常」）解析到同一页面
@@ -4844,58 +4833,6 @@ var initSlug = slugFromHash();
 if (initSlug){ show(initSlug); }
 else { var home = TREE.children && TREE.children.find(function(c){ return c.is_index; }); show(home ? home.slug : PAGES[0].slug); }
 
-// ── 首页返回确认：防止误触返回直接退出网站 ──
-var exitGuardActive = false;
-var isExiting = false;
-function pushExitGuard(){
-  if (exitGuardActive || isExiting) return;
-  exitGuardActive = true;
-  history.pushState({ exitGuard: true }, '');
-}
-function removeExitGuard(){
-  exitGuardActive = false;
-}
-window.addEventListener('popstate', function(e){
-  if (isExiting) return;  // 正在退出，不拦截
-  if (e.state && e.state.exitGuard && currentSlug === 'index'){
-    // 立即同步重新压入守卫，阻止浏览器继续退出
-    exitGuardActive = false;
-    history.pushState({ exitGuard: true }, '');
-    exitGuardActive = true;
-    // 弹出确认框
-    showExitConfirm();
-  }
-});
-function showExitConfirm(){
-  var overlay = document.createElement('div');
-  overlay.className = 'exit-confirm-overlay';
-  overlay.innerHTML = '<div class="exit-confirm-box">'
-    + '<div class="exit-confirm-title">确认退出？</div>'
-    + '<div class="exit-confirm-desc">即将离开龙钦宁提资料库</div>'
-    + '<div class="exit-confirm-buttons">'
-    + '<button class="exit-confirm-btn exit-cancel">继续浏览</button>'
-    + '<button class="exit-confirm-btn exit-ok">退出网站</button>'
-    + '</div></div>';
-  document.body.appendChild(overlay);
-  setTimeout(function(){ overlay.classList.add('show'); }, 10);
-  overlay.querySelector('.exit-cancel').onclick = function(){
-    overlay.classList.remove('show');
-    setTimeout(function(){ overlay.remove(); }, 200);
-  };
-  overlay.querySelector('.exit-ok').onclick = function(){
-    overlay.classList.remove('show');
-    setTimeout(function(){
-      overlay.remove();
-      // 设置正在退出标志，然后真正退出
-      isExiting = true;
-      exitGuardActive = false;
-      history.back();
-    }, 200);
-  };
-  overlay.onclick = function(e){
-    if (e.target === overlay) overlay.querySelector('.exit-cancel').click();
-  };
-}
 // 恢复上次播放的音频（仅加载，不自动播放）
 setTimeout(function(){
   try {
