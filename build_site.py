@@ -5143,6 +5143,102 @@ window.addEventListener('scroll', function(){
 <!-- noscript 降级 -->
 <noscript><div style="padding:2rem 1rem;text-align:center;font-size:.95rem;">本站需要启用 JavaScript 才能浏览。请在浏览器设置中开启后刷新页面。</div></noscript>
 
+<!-- ===== 新手引导：三个一次性气泡 ===== -->
+<style>
+.guide-tip{position:fixed;z-index:9997;background:var(--surface);border:1px solid var(--accent);
+  border-radius:10px;padding:.55rem .85rem;font-size:.88rem;color:var(--ink);line-height:1.55;
+  max-width:250px;box-shadow:0 4px 14px rgba(59,42,34,.18);cursor:pointer;}
+.guide-tip::after{content:'';position:absolute;width:9px;height:9px;background:var(--surface);
+  border-left:1px solid var(--accent);border-top:1px solid var(--accent);}
+.guide-tip.down::after{top:-5px;left:22px;transform:rotate(45deg);}
+.guide-tip.up::after{bottom:-5px;left:22px;transform:rotate(-135deg);}
+</style>
+<script>
+(function(){
+  var KEY = { menu:'lct-hint-menu', player:'lct-hint-player', ai:'lct-hint-ai' };
+  var AUTO_HIDE_MS = 10000;
+  var isWechat = /MicroMessenger/i.test(navigator.userAgent);
+
+  function seen(k){ try{ return !!localStorage.getItem(k); }catch(e){ return true; } }
+  function mark(k){ try{ localStorage.setItem(k,'1'); }catch(e){} }
+
+  var activeTip = null;
+
+  function dismissTip(){
+    if (!activeTip) return;
+    var el = activeTip.el; activeTip = null;
+    if (el && el.parentNode) el.parentNode.removeChild(el);
+  }
+
+  function showTip(key, anchorId, text, dir){
+    if (seen(key) || activeTip) return false;
+    var anchor = document.getElementById(anchorId);
+    if (!anchor) return false;
+    var el = document.createElement('div');
+    el.className = 'guide-tip ' + dir;
+    el.innerHTML = text;
+    el.style.visibility = 'hidden';
+    document.body.appendChild(el);
+
+    var r = anchor.getBoundingClientRect();
+    // 锚点不可见（如桌面端隐藏的按钮）则不显示
+    if (r.width === 0 || r.height === 0){ el.parentNode.removeChild(el); return false; }
+
+    var w = el.offsetWidth, h = el.offsetHeight;
+    var left = Math.max(10, Math.min(r.left + r.width/2 - w/2, window.innerWidth - w - 10));
+    var top = (dir === 'down') ? (r.bottom + 10) : Math.max(10, r.top - h - 10);
+    el.style.left = left + 'px';
+    el.style.top = top + 'px';
+    el.style.visibility = 'visible';
+
+    activeTip = { el: el, key: key };
+    // 到时自动消失也算"看过"，避免下次再来打扰
+    setTimeout(function(){
+      if (activeTip && activeTip.el === el){ mark(key); dismissTip(); }
+    }, AUTO_HIDE_MS);
+    return true;
+  }
+
+  // 点页面任意处：关闭当前气泡并记为已看
+  document.addEventListener('click', function(){
+    if (activeTip){ mark(activeTip.key); dismissTip(); }
+  }, true);
+
+  // 用户用过 AI 搜索，就永远不需要教了
+  var fab = document.getElementById('fabSearch');
+  if (fab) fab.addEventListener('click', function(){ mark(KEY.ai); });
+
+  // 计时起点 = 首次真实交互（密码墙的输密码动作天然在此前完成）
+  var interactionFired = false;
+  function onFirstInteraction(){
+    if (interactionFired) return;
+    interactionFired = true;
+    // 微信环境下延迟更久，避免和微信引导条重叠
+    var menuDelay = isWechat ? 15000 : 3000;
+    var aiDelay = isWechat ? 25000 : 15000;
+    // ① 目录提示：交互后 3 秒（微信环境15秒）
+    setTimeout(function(){
+      if (!showTip(KEY.menu, 'menuBtn', '全部内容都在左上角这个目录里', 'down')){
+        setTimeout(function(){ showTip(KEY.menu, 'menuBtn', '全部内容都在左上角这个目录里', 'down'); }, 8000);
+      }
+    }, menuDelay);
+    // ③ AI 提示：交互后 15 秒（微信环境25秒，若期间未用过 AI 搜索）
+    setTimeout(function(){
+      showTip(KEY.ai, 'fabSearch', '有修行上的问题？点这里，像聊天一样直接问', 'up');
+    }, aiDelay);
+  }
+  document.addEventListener('touchstart', onFirstInteraction, {passive:true});
+  document.addEventListener('click', onFirstInteraction);
+
+  // ② 播放器提示：音频第一次真正响起时
+  if (typeof playerAudio !== 'undefined' && playerAudio && playerAudio.addEventListener){
+    playerAudio.addEventListener('play', function(){
+      showTip(KEY.player, 'player', '正在播放。锁屏或切到后台，都能继续听', 'up');
+    });
+  }
+})();
+</script>
+
 </body>
 </html>
 """
