@@ -6,6 +6,25 @@
 <title>龙的传人 · 管理后台</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
+  /* 设计变量：与主站 build_site.py 的 :root 色板保持一致（2026-09-06 补齐，此前未定义导致样式失效） */
+  :root {
+    --bg: #f6f1e6;
+    --bg-2: #efe7d6;
+    --surface: #fffdf8;
+    --surface-soft: #f0e8d6;
+    --surface-hover: #ebe1cb;
+    --ink: #3b2a22;
+    --ink-soft: #6a4f43;
+    --ink-faint: #85705f;
+    --line: #e2d6bf;
+    --line-strong: #cbb893;
+    --accent: #8a1f1c;
+    --accent-soft: #b0473f;
+    --accent-deep: #6e1614;
+    --gold: #b8893b;
+    --gold-soft: #d9b86a;
+    --gold-deep: #96702f;
+  }
   body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
     background: #f5f5f5;
@@ -273,7 +292,7 @@
       </div>
     </div>
     
-    <!-- 音频播放统计 -->
+    <!-- AI问答统计 -->
     <div class="section">
       <h3>
         <span>🤖 AI问答统计</span>
@@ -432,16 +451,10 @@ function loadStats() {
     if (regStatus) regStatus.innerHTML = data.registerEnabled ? '<span style="color:#2e7d32;">已启用</span>' : '<span style="color:#c62828;">未启用</span>';
     
     const pwdStatus = document.getElementById('passwordStatus');
-    pwdStatus.innerHTML = data.passwordEnabled 
-      ? '<span class="status-tag status-on">已启用</span>' 
+    pwdStatus.innerHTML = data.passwordEnabled
+      ? '<span class="status-tag status-on">已启用</span>'
       : '<span class="status-tag status-off">未启用</span>';
-    
-    // 注册审核相关元素已隐藏，跳过更新
-    // const regStatus = document.getElementById('registerStatus');
-    // regStatus.innerHTML = data.registerEnabled 
-    //   ? '<span class="status-tag status-on">已启用</span>' 
-    //   : '<span class="status-tag status-off">未启用</span>';
-    
+
     // 渲染设备列表
     renderAdminDeviceStats(data.recentDevices || []);
     
@@ -492,11 +505,11 @@ function renderAdminDeviceStats(devices) {
     const totalMins = Math.floor((d.totalDuration || 0) / 60);
     const todayMins = Math.floor(((d.todayDuration && d.todayDuration[today]) || 0) / 60);
     const deviceName = d.name || (d.identify === 'pc' ? '我的电脑' : d.identify === 'phone' ? '我的手机' : '未命名');
-    const deviceType = d.deviceType || '待更新';
-    const os = d.os || '待更新';
-    const browser = d.browser || '待更新';
+    const deviceType = d.deviceType ? esc(d.deviceType) : '待更新';
+    const os = d.os ? esc(d.os) : '待更新';
+    const browser = d.browser ? esc(d.browser) : '待更新';
     const resolution = d.screenWidth && d.screenHeight ? `${d.screenWidth}×${d.screenHeight}` : '待更新';
-    const region = `${d.country || ''} ${d.region || ''} ${d.city || ''}`.trim() || '-';
+    const region = esc(`${d.country || ''} ${d.region || ''} ${d.city || ''}`.trim()) || '-';
     const typeIcon = d.identify === 'pc' ? '💻' : d.identify === 'phone' ? '📱' : '📱';
     
     html += `
@@ -592,11 +605,11 @@ function renderDeviceList(devices) {
       ? Math.floor(d.sessionDurations[d.sessionDurations.length - 1].duration / 60)
       : 0;
     const deviceName = d.name || '';
-    // 设备信息为空时显示"待更新"
-    const deviceType = d.deviceType || '<span style="color:var(--ink-faint);font-style:italic;">待更新</span>';
-    const os = d.os || '<span style="color:var(--ink-faint);font-style:italic;">待更新</span>';
-    const browser = d.browser || '<span style="color:var(--ink-faint);font-style:italic;">待更新</span>';
-    const region = `${d.country || ''} ${d.region || ''} ${d.city || ''}`.trim() || '-';
+    // 设备信息为空时显示"待更新"（数据值统一过 esc，防止伪造 UA/地区注入）
+    const deviceType = d.deviceType ? esc(d.deviceType) : '<span style="color:var(--ink-faint);font-style:italic;">待更新</span>';
+    const os = d.os ? esc(d.os) : '<span style="color:var(--ink-faint);font-style:italic;">待更新</span>';
+    const browser = d.browser ? esc(d.browser) : '<span style="color:var(--ink-faint);font-style:italic;">待更新</span>';
+    const region = esc(`${d.country || ''} ${d.region || ''} ${d.city || ''}`.trim()) || '-';
     
     // 判断访问者类型
     const isAdmin = ADMIN_DEVICE_IDS.includes(d.deviceId) || d.visitorType === 'admin';
@@ -647,7 +660,7 @@ function renderDeviceList(devices) {
     if (isReal && d.sessionDurations && d.sessionDurations.length > 0) {
       const recentSessions = d.sessionDurations.slice(-3).reverse();
       html += `<tr style="${rowStyle}">
-        <td colspan="11" style="padding-left:2rem;font-size:0.8rem;color:var(--ink-soft);background:rgba(76,175,80,0.02);">
+        <td colspan="12" style="padding-left:2rem;font-size:0.8rem;color:var(--ink-soft);background:rgba(76,175,80,0.02);">
           <strong>最近浏览：</strong>
           ${recentSessions.map(s => `${s.page || '未知页面'} (${Math.floor(s.duration)}秒)`).join(' | ')}
         </td>
@@ -697,10 +710,10 @@ function renderIpList(ips) {
   let html = '<table><tr><th>IP 地址</th><th>国家/地区</th><th>省份</th><th>城市</th><th>首次访问时间</th><th>最近访问时间</th><th>访问次数</th></tr>';
   ips.reverse().forEach(ip => {
     html += `<tr>
-      <td style="font-family:monospace;">${ip.ip}</td>
-      <td>${ip.country}</td>
-      <td>${ip.region || '-'}</td>
-      <td>${ip.city || '-'}</td>
+      <td style="font-family:monospace;">${esc(ip.ip)}</td>
+      <td>${esc(ip.country)}</td>
+      <td>${esc(ip.region) || '-'}</td>
+      <td>${esc(ip.city) || '-'}</td>
       <td>${formatTime(ip.firstSeen)}</td>
       <td>${formatTime(ip.lastSeen)}</td>
       <td>${ip.visitCount || '-'}</td>
@@ -926,14 +939,19 @@ checkLogin();
 // 加载AI问答统计
 async function loadAiAskStats() {
   try {
-    const response = await fetch(API_BASE + '/api/stats/ai-ask');
+    // 2026-09-06：AI统计接口已加管理员鉴权，请求必须携带密码头
+    const response = await fetch(API_BASE + '/api/stats/ai-ask', {
+      headers: { 'X-Admin-Password': adminPassword }
+    });
     const data = await response.json();
-    
+
     if (data.success) {
       renderAiAskSummary(data.summary);
       renderAiAskDailyStats(data.dailyStats);
       renderAiAskUserStats(data.userStats);
       renderAiAskRecentLogs(data.recentLogs);
+    } else {
+      document.getElementById('aiAskSummary').innerHTML = '<div class="empty">' + esc(data.message || '加载失败') + '</div>';
     }
   } catch (e) {
     console.error('加载AI问答统计失败:', e);

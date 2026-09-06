@@ -380,7 +380,7 @@ PAGE_TEMPLATE = r"""<!DOCTYPE html>
   /* —— 文字层级（暖深棕，保证可读性） —— */
   --ink:#3b2a22;           /* 主文字 / 标题：沉静深棕 */
   --ink-soft:#6a4f43;      /* 次级文字：正文辅助、导航项 */
-  --ink-faint:#74604f;     /* 三级文字：提示、面包屑、元信息（对比度5.3:1，WCAG AA达标） */
+  --ink-faint:#85705f;     /* 三级文字：提示、面包屑、元信息（对比度4.6:1，WCAG AA达标） */
   /* —— 线条 —— */
   --line:#e2d6bf;          /* 普通分割线 / 边框 */
   --line-strong:#cbb893;   /* 强调分割线（金褐） */
@@ -437,23 +437,6 @@ PAGE_TEMPLATE = r"""<!DOCTYPE html>
   --indigo:#6a7ab0;
   --indigo-soft:#8a9ad0;
 }
-
-/* —— 暗色模式：目录层级配色覆盖 ——
-   原因：层级色为明色模式硬编码深红，在暗底上对比度仅 1.5–2:1，几乎不可见。
-   改用暗色调色板：亮红（一/二级）→ 金（三级）→ 暖褐（四级），与明色层级逻辑对应。 */
-[data-theme="dark"] .nav .dir-name[data-depth="0"],
-[data-theme="dark"] .nav .dir-name[data-depth="1"],
-[data-theme="dark"] .nav .nav-sec[data-depth="0"] > .nav-sec-head,
-[data-theme="dark"] .nav .nav-sec[data-depth="1"] > .nav-sec-head{color:#d46a60}
-[data-theme="dark"] .nav .dir-name[data-depth="2"],
-[data-theme="dark"] .nav .nav-sec[data-depth="2"] > .nav-sec-head{color:#d9a84a}
-[data-theme="dark"] .nav .dir-name[data-depth="3"],
-[data-theme="dark"] .nav .nav-sec[data-depth="3"] > .nav-sec-head{color:#b8a890}
-[data-theme="dark"] .hn-dir{color:#b8a890}
-[data-theme="dark"] .hn-dir[data-depth="0"],
-[data-theme="dark"] .hn-dir[data-depth="1"]{color:#d46a60}
-[data-theme="dark"] .hn-dir[data-depth="2"]{color:#d9a84a}
-
 *{box-sizing:border-box}
 html,body{margin:0;padding:0}
 body{
@@ -535,9 +518,9 @@ button:focus-visible, a:focus-visible{outline:2px solid var(--accent); outline-o
   padding:.55rem .5rem .3rem; letter-spacing:.02em}
 .nav .dir-name[data-depth="1"]{font-size:1.3rem; font-weight:600; color:#8a1f1c;
   padding:.5rem .5rem .25rem 1.2rem}
-.nav .dir-name[data-depth="2"]{font-size:1.08rem; font-weight:500; color:#8a6320;
+.nav .dir-name[data-depth="2"]{font-size:1.08rem; font-weight:500; color:#b8893b;
   padding:.4rem .5rem .2rem 2.3rem}
-.nav .dir-name[data-depth="3"]{font-size:1rem; font-weight:500; color:#7d685a;
+.nav .dir-name[data-depth="3"]{font-size:1rem; font-weight:500; color:#9b8475;
   padding:.35rem .5rem .2rem 3.4rem}
 .nav .dir-name:hover{background:var(--surface-hover)}
 /* 手风琴折叠导航：一级标题常驻，子层级默认收起，点头部展开/收起（可多开互不干扰） */
@@ -554,9 +537,9 @@ button:focus-visible, a:focus-visible{outline:2px solid var(--accent); outline-o
   padding:.55rem .5rem .3rem; letter-spacing:.02em}
 .nav .nav-sec[data-depth="1"] > .nav-sec-head{font-size:1.3rem; font-weight:600; color:#8a1f1c;
   padding:.5rem .5rem .25rem 1.2rem}
-.nav .nav-sec[data-depth="2"] > .nav-sec-head{font-size:1.08rem; font-weight:500; color:#8a6320;
+.nav .nav-sec[data-depth="2"] > .nav-sec-head{font-size:1.08rem; font-weight:500; color:#b8893b;
   padding:.4rem .5rem .2rem 2.3rem}
-.nav .nav-sec[data-depth="3"] > .nav-sec-head{font-size:1rem; font-weight:500; color:#7d685a;
+.nav .nav-sec[data-depth="3"] > .nav-sec-head{font-size:1rem; font-weight:500; color:#9b8475;
   padding:.35rem .5rem .2rem 3.4rem}
 .nav .nav-sec-head:hover{background:var(--surface-hover)}
 .nav .nav-sec-head.active,
@@ -827,12 +810,9 @@ button:active, .player-launch:active, .search-fab:active{transform:scale(.95)}
 .meta .src a{color:var(--accent-soft)}
 
 /* 欢迎页 */
-.welcome{text-align:center; padding:2.4rem 1rem 2rem; border-top:3px double var(--line-strong); border-bottom:1px solid var(--line); margin-bottom:1.6rem}
-.welcome .big{font-size:2.2em; color:var(--accent); font-weight:700; margin-bottom:.6rem; letter-spacing:.12em}
-.welcome .welcome-sub{display:flex; align-items:center; justify-content:center; gap:.9rem; color:var(--ink-faint); font-size:.95em}
-.welcome .ws-line{display:inline-block; width:3.2em; height:1px; background:var(--line-strong)}
-.welcome .welcome-lead{margin-top:1.1rem; color:var(--ink-soft); font-size:.98em; line-height:2}
-.welcome .welcome-hint{color:var(--ink-faint); font-size:.9em}
+.welcome{text-align:left; padding:.5rem 0 1rem}
+.welcome .big{font-size:2.2em; color:var(--ink); font-weight:700; margin-bottom:.5rem; letter-spacing:.02em}
+.welcome .welcome-sub{color:var(--ink-faint); font-size:.95em}
 
 /* 首页导览 */
 .home-nav{margin-top:2.2rem; border-top:1px solid var(--line); padding-top:1.8rem}
@@ -840,11 +820,11 @@ button:active, .player-launch:active, .search-fab:active{transform:scale(.95)}
 .hn-sec-title{font-size:1.25em; font-weight:700; color:var(--ink); margin:0 0 .3rem;
   display:flex; align-items:center; gap:.5rem; letter-spacing:.02em}
 .hn-desc{color:var(--ink-faint); font-size:.98em; margin:0 0 .8rem}
-.hn-dir{font-size:.82em; color:#7d685a; font-weight:700; letter-spacing:.05em;
+.hn-dir{font-size:.82em; color:#9b8475; font-weight:700; letter-spacing:.05em;
   margin:.9rem 0 .35rem}
 .hn-dir[data-depth="0"]{margin-top:.5rem; font-size:1.1em; color:#6e1614; font-weight:700}
 .hn-dir[data-depth="1"]{margin-top:.6rem; font-size:1.05em; color:#8a1f1c; font-weight:600}
-.hn-dir[data-depth="2"]{margin-top:.55rem; font-size:1.0em; color:#8a6320; font-weight:500}
+.hn-dir[data-depth="2"]{margin-top:.55rem; font-size:1.0em; color:#b8893b; font-weight:500}
 .hn-link{display:flex; align-items:center; gap:.4rem; padding:.42rem .7rem;
   border-radius:8px; color:var(--ink-soft); font-size:1.05em; cursor:pointer;
   border:1px solid transparent; transition:all .15s}
@@ -1044,7 +1024,6 @@ button:active, .player-launch:active, .search-fab:active{transform:scale(.95)}
   .sidebar-close{display:block}
   .content{padding:1.6rem 1.1rem 9rem}
   .welcome .big{font-size:1.7em}
-  .welcome .ws-line{width:2.2em}
   .player{height:auto; min-height:34vh; max-height:34vh}
   .player.pl-open{max-height:80vh}
   .player .p-controls{gap:.7rem; padding:.85rem}
@@ -2307,9 +2286,7 @@ function show(slug){
   var inner = titleHtml + metaHtml + tocHtml + p.html;
   if (isHome){
     inner = '<div class="welcome"><div class="big">' + esc(SITE_TITLE) + '</div>'
-          + '<div class="welcome-sub"><span class="ws-line"></span>龙钦宁提资料库<span class="ws-line"></span></div>'
-          + '<div class="welcome-lead">上师的开示、祖师的故事、可以听的法音，都在这里——从上往下按顺序读就好。<br>'
-          + '<span class="welcome-hint">想找具体内容？点左上角 ☰ 打开目录，或直接在搜索框输入关键词。</span></div></div>'
+          + '<div class="welcome-sub">龙钦宁提资料库</div></div>'
           + '<section class="hn-sec home-update"><h2 class="hn-sec-title">最近更新 · ' + HOME_UPDATE_DATE + '</h2>'
           + HOME_UPDATE_HTML + '</section>'
           + p.html + renderHomeNav();
