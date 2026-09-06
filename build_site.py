@@ -2356,6 +2356,24 @@ function show(slug){
   void contentEl.offsetWidth;
   contentEl.classList.add('page-anim');
   document.getElementById('pageCrumbs').textContent = p.is_index ? '' : (' / ' + p.title);
+  // 动态更新分享卡片meta标签（文章页提取标题+前100字正文）
+  try {
+    var shareTitle = p.is_index ? (SITE_TITLE + '｜龙钦宁提资料库') : (p.title + '｜' + SITE_TITLE);
+    var shareDesc = '龙钦宁提资料库：上师开示、传承祖师、法音、书籍。';
+    if (!p.is_index && p.html) {
+      var plainText = p.html.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
+      if (plainText.length > 0) {
+        shareDesc = plainText.substring(0, 100) + (plainText.length > 100 ? '...' : '');
+      }
+    }
+    document.title = shareTitle;
+    var metaDesc = document.querySelector('meta[name="description"]');
+    if (metaDesc) metaDesc.setAttribute('content', shareDesc);
+    var ogTitle = document.querySelector('meta[property="og:title"]');
+    if (ogTitle) ogTitle.setAttribute('content', shareTitle);
+    var ogDesc = document.querySelector('meta[property="og:description"]');
+    if (ogDesc) ogDesc.setAttribute('content', shareDesc);
+  } catch(e) {}
   // 目录选中态：仅高亮「层级最深」的匹配项。
   // 当父目录（大标题，如「1 为何修行」）与子目录（如「1.1 诸行无常」）解析到同一页面
   // （data-slug 相同，父目录无自身内容、只含该子目录时会发生）时，只点亮子文件夹，
@@ -3528,8 +3546,13 @@ function doPanelSearch(){
           + '<div class="sr-path">' + esc(path) + '</div></div>';
       }).join('');
   }
-  // 2. AI 问答（自动触发）
-  sendAiAsk(q);
+  // 2. 显示"AI问答"按钮（用户点击后才调用AI，不自动触发）
+  messages.innerHTML = '';
+  var aiBtn = document.createElement('div');
+  aiBtn.style.cssText = 'text-align:center;margin:1rem 0;';
+  aiBtn.innerHTML = '<button onclick="sendAiAsk(\'' + q.replace(/'/g, "\\'") + '\')" style="padding:.6rem 1.5rem;border-radius:20px;border:none;background:var(--accent);color:#fff;cursor:pointer;font-size:.95rem;box-shadow:0 2px 8px rgba(138,31,28,.2);">🤖 用 AI 问答</button>'
+    + '<div style="font-size:.8rem;color:var(--ink-faint);margin-top:.4rem;">基于本站资料智能回答，可能需要10-15秒</div>';
+  results.appendChild(aiBtn);
 }
 
 // ===== AI 问答功能 =====
@@ -5087,7 +5110,7 @@ window.addEventListener('scroll', function(){
 
 <!-- 微信内打开：引导跳系统浏览器以支持「添加到主屏幕」 -->
 <style>
-.wechat-tip{position:fixed;top:0;left:0;right:0;z-index:9999;background:var(--accent);color:#fff;
+.wechat-tip{position:fixed;top:0;left:0;right:0;z-index:9998;background:var(--accent);color:#fff;
   padding:.6rem 1rem .6rem 1.2rem;font-size:.85rem;line-height:1.6;cursor:pointer;
   box-shadow:0 2px 10px rgba(59,42,34,.25);}
 .wechat-tip b{font-weight:600;}
@@ -5096,14 +5119,24 @@ window.addEventListener('scroll', function(){
 (function(){
   if (!/MicroMessenger/i.test(navigator.userAgent)) return;      // 仅微信内显示
   if (localStorage.getItem('lct-wechat-tip-dismissed')) return;    // 关闭过不再显示
-  var bar = document.createElement('div');
-  bar.className = 'wechat-tip';
-  bar.innerHTML = '想把它装到手机桌面、像 APP 一样使用？点右上角 <b>···</b> → 「在浏览器打开」，再用浏览器菜单「添加到主屏幕」';
-  bar.addEventListener('click', function(){
-    localStorage.setItem('lct-wechat-tip-dismissed', '1');
-    bar.remove();
-  });
-  document.body.appendChild(bar);
+  function showTip(){
+    // 密码遮罩层显示时不显示引导条（用户还没进网站，引导没用）
+    var overlay = document.getElementById('accessOverlay');
+    if (overlay && overlay.style.display !== 'none') {
+      setTimeout(showTip, 1000); // 等1秒再检查
+      return;
+    }
+    var bar = document.createElement('div');
+    bar.className = 'wechat-tip';
+    bar.innerHTML = '想把它装到手机桌面、像 APP 一样使用？点右上角 <b>···</b> → 「在浏览器打开」，再用浏览器菜单「添加到主屏幕」';
+    bar.addEventListener('click', function(){
+      localStorage.setItem('lct-wechat-tip-dismissed', '1');
+      bar.remove();
+    });
+    document.body.appendChild(bar);
+  }
+  // 延迟显示，等页面初始化完成
+  setTimeout(showTip, 2000);
 })();
 </script>
 
