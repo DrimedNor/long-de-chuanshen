@@ -5146,7 +5146,7 @@ window.addEventListener('scroll', function(){
 <!-- noscript 降级 -->
 <noscript><div style="padding:2rem 1rem;text-align:center;font-size:.95rem;">本站需要启用 JavaScript 才能浏览。请在浏览器设置中开启后刷新页面。</div></noscript>
 
-<!-- ===== 新手引导：聚光灯效果 ===== -->
+<!-- ===== 新手引导：聚光灯效果（连着播） ===== -->
 <style>
 .spotlight-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.65);z-index:9999;cursor:pointer;}
 .spotlight-highlight{position:absolute;border:2px solid var(--gold);border-radius:10px;
@@ -5160,29 +5160,34 @@ window.addEventListener('scroll', function(){
   border-radius:12px;padding:.9rem 1.1rem;font-size:.95rem;color:var(--ink);line-height:1.65;
   max-width:280px;box-shadow:0 6px 25px rgba(0,0,0,.4);pointer-events:auto;}
 .spotlight-text b{color:var(--accent);font-weight:600;}
-.spotlight-close{position:absolute;top:8px;right:10px;font-size:.8rem;color:var(--ink-faint);cursor:pointer;}
+.spotlight-next{display:block;text-align:right;margin-top:.6rem;font-size:.85rem;color:var(--accent);font-weight:500;}
+.spotlight-progress{text-align:center;font-size:.75rem;color:var(--ink-faint);margin-bottom:.4rem;}
 </style>
 <script>
 (function(){
   var KEY = { menu:'lct-hint-menu', player:'lct-hint-player', ai:'lct-hint-ai' };
-  var AUTO_HIDE_MS = 12000;
-  var isWechat = /MicroMessenger/i.test(navigator.userAgent);
+  var AUTO_HIDE_MS = 20000;  // 连着播模式给更长时间，用户可以慢慢看
 
   function seen(k){ try{ return !!localStorage.getItem(k); }catch(e){ return true; } }
   function mark(k){ try{ localStorage.setItem(k,'1'); }catch(e){} }
 
   var activeSpotlight = null;
+  var onDismissCallback = null;  // 关闭后的回调（用于连着播）
 
   function dismissSpotlight(){
     if (!activeSpotlight) return;
     var key = activeSpotlight.key;
     var overlay = activeSpotlight.overlay;
+    var callback = onDismissCallback;
     activeSpotlight = null;
+    onDismissCallback = null;
     mark(key);
     if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay);
+    // 连着播：关闭后执行回调（显示下一个引导）
+    if (callback) setTimeout(callback, 300);
   }
 
-  function showSpotlight(key, anchorId, text, textPos){
+  function showSpotlight(key, anchorId, text, progressText, nextText){
     if (seen(key) || activeSpotlight) return false;
     var anchor = document.getElementById(anchorId);
     if (!anchor) return false;
@@ -5205,11 +5210,13 @@ window.addEventListener('scroll', function(){
     // 文字说明
     var txt = document.createElement('div');
     txt.className = 'spotlight-text';
-    txt.innerHTML = '<span class="spotlight-close" onclick="this.parentElement.parentElement.click()">✕ 关闭</span>' + text;
+    var progressHtml = progressText ? '<div class="spotlight-progress">' + progressText + '</div>' : '';
+    var nextHtml = nextText ? '<span class="spotlight-next">' + nextText + '</span>' : '';
+    txt.innerHTML = progressHtml + text + nextHtml;
     // 计算文字位置：默认在高亮窗口下方，如果空间不够就放上方
     var txtTop = r.bottom + pad + 15;
-    if (txtTop + 120 > window.innerHeight) {
-      txtTop = Math.max(10, r.top - 130);
+    if (txtTop + 150 > window.innerHeight) {
+      txtTop = Math.max(10, r.top - 160);
     }
     var txtLeft = Math.max(10, Math.min(r.left, window.innerWidth - 300));
     txt.style.left = txtLeft + 'px';
@@ -5233,37 +5240,45 @@ window.addEventListener('scroll', function(){
   var fab = document.getElementById('fabSearch');
   if (fab) fab.addEventListener('click', function(){ mark(KEY.ai); });
 
+  // ===== 连着播：目录 → AI搜索 =====
+  function startGuidedTour(){
+    // 第一个：目录引导
+    var shown = showSpotlight(KEY.menu, 'menuBtn',
+      '<b>全部内容都在这里</b><br>点击左上角 ☰ 打开目录，上师开示、传承、法音、书籍都在里面。',
+      '1 / 2', '点击继续 →');
+    if (shown) {
+      // 关闭后自动显示第二个：AI搜索引导
+      onDismissCallback = function(){
+        if (!seen(KEY.ai)) {
+          showSpotlight(KEY.ai, 'fabSearch',
+            '<b>有问题？</b><br>点击 🔍，可以像聊天一样直接问，AI 会基于本站已有龙钦宁提资料回答。',
+            '2 / 2', '点击完成 ✓');
+        }
+      };
+    }
+  }
+
   // 计时起点 = 首次真实交互
   var interactionFired = false;
   function onFirstInteraction(){
     if (interactionFired) return;
     interactionFired = true;
-    // ① 目录提示：交互后 3 秒（微信环境12秒，避免和微信引导条重叠）
-    var menuDelay = isWechat ? 12000 : 3000;
-    setTimeout(function(){
-      showSpotlight(KEY.menu, 'menuBtn',
-        '<b>全部内容都在这里</b><br>点击左上角 ☰ 打开目录，上师开示、传承、法音、书籍都在里面。',
-        'down');
-    }, menuDelay);
-    // ③ AI 提示：交互后 8 秒（微信环境18秒）
-    var aiDelay = isWechat ? 18000 : 8000;
-    setTimeout(function(){
-      showSpotlight(KEY.ai, 'fabSearch',
-        '<b>有修行上的问题？</b><br>点击右下角 🔍，像聊天一样直接问，AI会基于本站资料回答。',
-        'up');
-    }, aiDelay);
+    // 微信环境下延迟一点，避免和微信引导条重叠
+    var delay = /MicroMessenger/i.test(navigator.userAgent) ? 3000 : 1000;
+    setTimeout(startGuidedTour, delay);
   }
   document.addEventListener('touchstart', onFirstInteraction, {passive:true});
   document.addEventListener('click', onFirstInteraction);
 
-  // ② 播放器提示：音频第一次真正响起时
+  // 播放器引导：首次播放时单独出现（不参与连着播，因为播放是用户主动行为）
   if (typeof playerAudio !== 'undefined' && playerAudio && playerAudio.addEventListener){
     playerAudio.addEventListener('play', function(){
+      if (seen(KEY.player) || activeSpotlight) return;
       // 延迟一点，等播放器面板完全显示
       setTimeout(function(){
         showSpotlight(KEY.player, 'player',
           '<b>锁屏也能继续听</b><br>播放音频后，锁屏界面会显示控制按钮，切到后台也不会中断。',
-          'up');
+          '', '知道了 ✓');
       }, 500);
     });
   }
