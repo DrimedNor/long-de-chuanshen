@@ -1252,16 +1252,19 @@ function generateInviteCode() {
 async function recordDevice(kv, deviceId, ip, geo) {
   if (!kv || !deviceId) return;
   const country = geo?.country || 'UNKNOWN';
-  
+
+  // 说明：统计写入均为"尽力而为"（2026-09-06 加固）——免费版 KV 写入配额耗尽时
+  // 静默放弃本条统计，绝不抛异常阻断 /api/track（否则主站访客请求会 500）。
+
   // 记录设备（去重）
   const key = 'unique_devices';
-  const existing = await kv.get(key, 'json');
+  const existing = await kv.get(key, 'json').catch(() => null);
   const deviceSet = new Set(existing || []);
-  
+
   if (!deviceSet.has(deviceId)) {
     deviceSet.add(deviceId);
-    await kv.put(key, JSON.stringify([...deviceSet]));
-    
+    await kv.put(key, JSON.stringify([...deviceSet])).catch(() => {});
+
     // 记录设备详情（含地理位置）
     await kv.put('device_' + deviceId, JSON.stringify({
       deviceId,
@@ -1274,27 +1277,27 @@ async function recordDevice(kv, deviceId, ip, geo) {
       lastSeen: new Date().toISOString(),
       visitCount: 1,
       visitorType: 'unknown', // admin / bot / real
-    }));
+    })).catch(() => {});
   } else {
     // 已存在的设备：更新最近访问时间和访问次数
-    const deviceDetail = await kv.get('device_' + deviceId, 'json');
+    const deviceDetail = await kv.get('device_' + deviceId, 'json').catch(() => null);
     if (deviceDetail) {
       deviceDetail.lastSeen = new Date().toISOString();
       deviceDetail.visitCount = (deviceDetail.visitCount || 0) + 1;
-      await kv.put('device_' + deviceId, JSON.stringify(deviceDetail));
+      await kv.put('device_' + deviceId, JSON.stringify(deviceDetail)).catch(() => {});
     }
   }
-  
+
   // 记录 IP（去重）
   if (ip && ip !== 'unknown') {
     const ipKey = 'unique_ips';
-    const existingIps = await kv.get(ipKey, 'json');
+    const existingIps = await kv.get(ipKey, 'json').catch(() => null);
     const ipSet = new Set(existingIps || []);
-    
+
     if (!ipSet.has(ip)) {
       ipSet.add(ip);
-      await kv.put(ipKey, JSON.stringify([...ipSet]));
-      
+      await kv.put(ipKey, JSON.stringify([...ipSet])).catch(() => {});
+
       // 记录 IP 详情（含地理位置）
       await kv.put('ip_' + ip, JSON.stringify({
         ip,
@@ -1309,14 +1312,14 @@ async function recordDevice(kv, deviceId, ip, geo) {
         lastSeen: new Date().toISOString(),
         visitCount: 1,
         deviceId: deviceId,
-      }));
+      })).catch(() => {});
     } else {
       // 已存在的 IP：更新最近访问时间和访问次数
-      const ipDetail = await kv.get('ip_' + ip, 'json');
+      const ipDetail = await kv.get('ip_' + ip, 'json').catch(() => null);
       if (ipDetail) {
         ipDetail.lastSeen = new Date().toISOString();
         ipDetail.visitCount = (ipDetail.visitCount || 0) + 1;
-        await kv.put('ip_' + ip, JSON.stringify(ipDetail));
+        await kv.put('ip_' + ip, JSON.stringify(ipDetail)).catch(() => {});
       }
     }
   }
@@ -1343,15 +1346,15 @@ async function getAccessStatus(env) {
   let passwordEnabled = pwdFlag === 'true';
   let registerEnabled = regFlag === 'true';
 
-  // 如果累计设备数达到阈值且尚未启用，永久启用（写操作仅在首次触发时发生，保持串行）
+  // 如果累计设备数达到阈值且尚未启用，永久启用（写操作仅在首次触发时发生，失败不阻断）
   if (deviceCount >= deviceThreshold && !passwordEnabled && kv) {
-    await kv.put('password_enabled', 'true');
+    await kv.put('password_enabled', 'true').catch(() => {});
     passwordEnabled = true;
   }
 
   // 如果累计设备数达到注册阈值且尚未启用，启用注册审核
   if (deviceCount >= registerThreshold && !registerEnabled && kv) {
-    await kv.put('register_enabled', 'true');
+    await kv.put('register_enabled', 'true').catch(() => {});
     registerEnabled = true;
   }
 
