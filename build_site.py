@@ -5129,11 +5129,14 @@ window.addEventListener('scroll', function(){
     var bar = document.createElement('div');
     bar.className = 'wechat-tip';
     bar.innerHTML = '想把它装到手机桌面、像 APP 一样使用？点右上角 <b>···</b> → 「在浏览器打开」，再用浏览器菜单「添加到主屏幕」';
-    bar.addEventListener('click', function(){
+    function dismiss(){
       localStorage.setItem('lct-wechat-tip-dismissed', '1');
-      bar.remove();
-    });
+      if (bar && bar.parentNode) bar.remove();
+    }
+    bar.addEventListener('click', dismiss);
     document.body.appendChild(bar);
+    // 10秒后自动消失，不再弹出
+    setTimeout(dismiss, 10000);
   }
   // 延迟显示，等页面初始化完成
   setTimeout(showTip, 2000);
@@ -5143,88 +5146,111 @@ window.addEventListener('scroll', function(){
 <!-- noscript 降级 -->
 <noscript><div style="padding:2rem 1rem;text-align:center;font-size:.95rem;">本站需要启用 JavaScript 才能浏览。请在浏览器设置中开启后刷新页面。</div></noscript>
 
-<!-- ===== 新手引导：三个一次性气泡 ===== -->
+<!-- ===== 新手引导：聚光灯效果 ===== -->
 <style>
-.guide-tip{position:fixed;z-index:9997;background:var(--surface);border:1px solid var(--accent);
-  border-radius:10px;padding:.55rem .85rem;font-size:.88rem;color:var(--ink);line-height:1.55;
-  max-width:250px;box-shadow:0 4px 14px rgba(59,42,34,.18);cursor:pointer;}
-.guide-tip::after{content:'';position:absolute;width:9px;height:9px;background:var(--surface);
-  border-left:1px solid var(--accent);border-top:1px solid var(--accent);}
-.guide-tip.down::after{top:-5px;left:22px;transform:rotate(45deg);}
-.guide-tip.up::after{bottom:-5px;left:22px;transform:rotate(-135deg);}
+.spotlight-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.65);z-index:9999;cursor:pointer;}
+.spotlight-highlight{position:absolute;border:2px solid var(--gold);border-radius:10px;
+  box-shadow:0 0 0 4px rgba(184,137,59,0.3),0 0 25px rgba(184,137,59,0.6);
+  animation:spotlightPulse 1.5s ease-in-out infinite;pointer-events:none;}
+@keyframes spotlightPulse{
+  0%,100%{box-shadow:0 0 0 4px rgba(184,137,59,0.3),0 0 25px rgba(184,137,59,0.6);}
+  50%{box-shadow:0 0 0 10px rgba(184,137,59,0.15),0 0 40px rgba(184,137,59,0.8);}
+}
+.spotlight-text{position:absolute;background:var(--surface);border:1px solid var(--accent);
+  border-radius:12px;padding:.9rem 1.1rem;font-size:.95rem;color:var(--ink);line-height:1.65;
+  max-width:280px;box-shadow:0 6px 25px rgba(0,0,0,.4);pointer-events:auto;}
+.spotlight-text b{color:var(--accent);font-weight:600;}
+.spotlight-close{position:absolute;top:8px;right:10px;font-size:.8rem;color:var(--ink-faint);cursor:pointer;}
 </style>
 <script>
 (function(){
   var KEY = { menu:'lct-hint-menu', player:'lct-hint-player', ai:'lct-hint-ai' };
-  var AUTO_HIDE_MS = 10000;
+  var AUTO_HIDE_MS = 12000;
   var isWechat = /MicroMessenger/i.test(navigator.userAgent);
 
   function seen(k){ try{ return !!localStorage.getItem(k); }catch(e){ return true; } }
   function mark(k){ try{ localStorage.setItem(k,'1'); }catch(e){} }
 
-  var activeTip = null;
+  var activeSpotlight = null;
 
-  function dismissTip(){
-    if (!activeTip) return;
-    var el = activeTip.el; activeTip = null;
-    if (el && el.parentNode) el.parentNode.removeChild(el);
+  function dismissSpotlight(){
+    if (!activeSpotlight) return;
+    var key = activeSpotlight.key;
+    var overlay = activeSpotlight.overlay;
+    activeSpotlight = null;
+    mark(key);
+    if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay);
   }
 
-  function showTip(key, anchorId, text, dir){
-    if (seen(key) || activeTip) return false;
+  function showSpotlight(key, anchorId, text, textPos){
+    if (seen(key) || activeSpotlight) return false;
     var anchor = document.getElementById(anchorId);
     if (!anchor) return false;
-    var el = document.createElement('div');
-    el.className = 'guide-tip ' + dir;
-    el.innerHTML = text;
-    el.style.visibility = 'hidden';
-    document.body.appendChild(el);
-
     var r = anchor.getBoundingClientRect();
-    // 锚点不可见（如桌面端隐藏的按钮）则不显示
-    if (r.width === 0 || r.height === 0){ el.parentNode.removeChild(el); return false; }
+    if (r.width === 0 || r.height === 0) return false;
 
-    var w = el.offsetWidth, h = el.offsetHeight;
-    var left = Math.max(10, Math.min(r.left + r.width/2 - w/2, window.innerWidth - w - 10));
-    var top = (dir === 'down') ? (r.bottom + 10) : Math.max(10, r.top - h - 10);
-    el.style.left = left + 'px';
-    el.style.top = top + 'px';
-    el.style.visibility = 'visible';
+    var overlay = document.createElement('div');
+    overlay.className = 'spotlight-overlay';
 
-    activeTip = { el: el, key: key };
-    // 到时自动消失也算"看过"，避免下次再来打扰
+    // 高亮窗口（比目标稍大一圈）
+    var pad = 8;
+    var hl = document.createElement('div');
+    hl.className = 'spotlight-highlight';
+    hl.style.left = (r.left - pad) + 'px';
+    hl.style.top = (r.top - pad) + 'px';
+    hl.style.width = (r.width + pad*2) + 'px';
+    hl.style.height = (r.height + pad*2) + 'px';
+    overlay.appendChild(hl);
+
+    // 文字说明
+    var txt = document.createElement('div');
+    txt.className = 'spotlight-text';
+    txt.innerHTML = '<span class="spotlight-close" onclick="this.parentElement.parentElement.click()">✕ 关闭</span>' + text;
+    // 计算文字位置：默认在高亮窗口下方，如果空间不够就放上方
+    var txtTop = r.bottom + pad + 15;
+    if (txtTop + 120 > window.innerHeight) {
+      txtTop = Math.max(10, r.top - 130);
+    }
+    var txtLeft = Math.max(10, Math.min(r.left, window.innerWidth - 300));
+    txt.style.left = txtLeft + 'px';
+    txt.style.top = txtTop + 'px';
+    overlay.appendChild(txt);
+
+    // 点击任意处关闭
+    overlay.addEventListener('click', dismissSpotlight);
+
+    document.body.appendChild(overlay);
+    activeSpotlight = { overlay: overlay, key: key };
+
+    // 自动消失
     setTimeout(function(){
-      if (activeTip && activeTip.el === el){ mark(key); dismissTip(); }
+      if (activeSpotlight && activeSpotlight.overlay === overlay){ dismissSpotlight(); }
     }, AUTO_HIDE_MS);
     return true;
   }
-
-  // 点页面任意处：关闭当前气泡并记为已看
-  document.addEventListener('click', function(){
-    if (activeTip){ mark(activeTip.key); dismissTip(); }
-  }, true);
 
   // 用户用过 AI 搜索，就永远不需要教了
   var fab = document.getElementById('fabSearch');
   if (fab) fab.addEventListener('click', function(){ mark(KEY.ai); });
 
-  // 计时起点 = 首次真实交互（密码墙的输密码动作天然在此前完成）
+  // 计时起点 = 首次真实交互
   var interactionFired = false;
   function onFirstInteraction(){
     if (interactionFired) return;
     interactionFired = true;
-    // 微信环境下延迟更久，避免和微信引导条重叠
-    var menuDelay = isWechat ? 15000 : 3000;
-    var aiDelay = isWechat ? 25000 : 15000;
-    // ① 目录提示：交互后 3 秒（微信环境15秒）
+    // ① 目录提示：交互后 3 秒（微信环境12秒，避免和微信引导条重叠）
+    var menuDelay = isWechat ? 12000 : 3000;
     setTimeout(function(){
-      if (!showTip(KEY.menu, 'menuBtn', '全部内容都在左上角这个目录里', 'down')){
-        setTimeout(function(){ showTip(KEY.menu, 'menuBtn', '全部内容都在左上角这个目录里', 'down'); }, 8000);
-      }
+      showSpotlight(KEY.menu, 'menuBtn',
+        '<b>全部内容都在这里</b><br>点击左上角 ☰ 打开目录，上师开示、传承、法音、书籍都在里面。',
+        'down');
     }, menuDelay);
-    // ③ AI 提示：交互后 15 秒（微信环境25秒，若期间未用过 AI 搜索）
+    // ③ AI 提示：交互后 8 秒（微信环境18秒）
+    var aiDelay = isWechat ? 18000 : 8000;
     setTimeout(function(){
-      showTip(KEY.ai, 'fabSearch', '有修行上的问题？点这里，像聊天一样直接问', 'up');
+      showSpotlight(KEY.ai, 'fabSearch',
+        '<b>有修行上的问题？</b><br>点击右下角 🔍，像聊天一样直接问，AI会基于本站资料回答。',
+        'up');
     }, aiDelay);
   }
   document.addEventListener('touchstart', onFirstInteraction, {passive:true});
@@ -5233,7 +5259,12 @@ window.addEventListener('scroll', function(){
   // ② 播放器提示：音频第一次真正响起时
   if (typeof playerAudio !== 'undefined' && playerAudio && playerAudio.addEventListener){
     playerAudio.addEventListener('play', function(){
-      showTip(KEY.player, 'player', '正在播放。锁屏或切到后台，都能继续听', 'up');
+      // 延迟一点，等播放器面板完全显示
+      setTimeout(function(){
+        showSpotlight(KEY.player, 'player',
+          '<b>锁屏也能继续听</b><br>播放音频后，锁屏界面会显示控制按钮，切到后台也不会中断。',
+          'up');
+      }, 500);
     });
   }
 })();
