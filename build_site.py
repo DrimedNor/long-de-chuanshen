@@ -1043,7 +1043,7 @@ button:active, .player-launch:active, .search-fab:active{transform:scale(.95)}
   .sidebar.open{transform:translateX(0)}
   .sidebar-close{display:block}
   .content{padding:1.6rem 1.1rem 9rem}
-  .welcome .big{font-size:1.7em}
+  .welcome .big{font-size:1.35em; letter-spacing:.06em}
   .welcome .ws-line{width:2.2em}
   .player{height:auto; min-height:34vh; max-height:34vh}
   .player.pl-open{max-height:80vh}

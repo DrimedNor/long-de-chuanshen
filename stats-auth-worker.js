@@ -1217,21 +1217,21 @@ async function checkAdminAuth(request, env, url) {
     return { ok: false, response: json({ success: false, message: '失败次数过多，已临时锁定，请 ' + remainMin + ' 分钟后再试' }, 429) };
   }
 
-  // 2. 比对密码
+  // 2. 比对密码（KV 写失败不阻断鉴权：拒绝访问是目的，失败计数尽力而为）
   if (inputPass !== correctPass) {
     const count = ((failData && failData.windowEnd && Date.now() < failData.windowEnd) ? failData.count : 0) + 1;
     if (count >= 5) {
       const until = Date.now() + 15 * 60 * 1000;
-      await env.STATS_KV.put(failKey, JSON.stringify({ count: count, windowEnd: until, lockedUntil: until }), { expirationTtl: 16 * 60 });
+      await env.STATS_KV.put(failKey, JSON.stringify({ count: count, windowEnd: until, lockedUntil: until }), { expirationTtl: 16 * 60 }).catch(() => {});
       return { ok: false, response: json({ success: false, message: '密码错误次数过多，已锁定 15 分钟' }, 429) };
     }
-    await env.STATS_KV.put(failKey, JSON.stringify({ count: count, windowEnd: Date.now() + 15 * 60 * 1000 }), { expirationTtl: 16 * 60 });
+    await env.STATS_KV.put(failKey, JSON.stringify({ count: count, windowEnd: Date.now() + 15 * 60 * 1000 }), { expirationTtl: 16 * 60 }).catch(() => {});
     return { ok: false, response: json({ success: false, message: '管理员密码错误（再错 ' + (5 - count) + ' 次将锁定 15 分钟）' }, 401) };
   }
 
-  // 3. 密码正确，清除失败计数
+  // 3. 密码正确，清除失败计数（尽力而为）
   if (failData) {
-    await env.STATS_KV.delete(failKey);
+    await env.STATS_KV.delete(failKey).catch(() => {});
   }
   return { ok: true };
 }
