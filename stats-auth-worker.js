@@ -677,13 +677,9 @@ export default {
               if (deviceDetail.sessionDurations.length > 50) {
                 deviceDetail.sessionDurations = deviceDetail.sessionDurations.slice(-50);
               }
-              // 更新访问者类型：总停留时间<60秒为爬虫，否则为真实用户
-              if (deviceDetail.totalDuration >= 60) {
-                deviceDetail.visitorType = 'real';
-              } else {
-                deviceDetail.visitorType = 'bot';
-              }
-              await env.STATS_KV.put(deviceKey, JSON.stringify(deviceDetail));
+              // 更新访问者类型（2026-09-07 统一走动态分类：管理员/爬虫UA/累计时长综合判定）
+              deviceDetail.visitorType = classifyVisitor(deviceDetail, env);
+              await env.STATS_KV.put(deviceKey, JSON.stringify(deviceDetail)).catch(() => {});
             }
           }
           return new Response(JSON.stringify({ success: true }), {
@@ -771,8 +767,10 @@ export default {
           env.STATS_KV.get('click_stats_list', 'json'),
         ]);
 
-        // 第二轮：并行读取所有详情 key（设备/IP 取最近 20 个）
-        const devKeys = (deviceList || []).slice(-20).map(id => 'device_' + id);
+        // 第二轮：并行读取所有详情 key（设备默认取最近 20 个，?devices=all 返回全部）
+        const wantAllDevices = url.searchParams.get('devices') === 'all';
+        const deviceIds = wantAllDevices ? (deviceList || []) : (deviceList || []).slice(-20);
+        const devKeys = deviceIds.map(id => 'device_' + id);
         const ipKeys = (ipList || []).slice(-20).map(i => 'ip_' + i);
         const [devResults, ipResults, pageResults, audioResults, clickResults] = await Promise.all([
           Promise.all(devKeys.map(k => env.STATS_KV.get(k, 'json').catch(() => null))),
@@ -787,6 +785,19 @@ export default {
         const pageStats = pageResults.filter(Boolean).sort((a, b) => (b.viewCount || 0) - (a.viewCount || 0));
         const audioStats = audioResults.filter(Boolean).sort((a, b) => (b.playCount || 0) - (a.playCount || 0));
         const clickStats = clickResults.filter(Boolean).sort((a, b) => (b.count || 0) - (a.count || 0));
+
+        // —— 访问者动态分类（2026-09-07）：读取时实时计算，不再信任存量快照，历史 unknown 自动归位 ——
+        recentDevices.forEach(d => { d.visitorType = classifyVisitor(d, env); });
+
+        // 管理员设备强制并入（可能不在最近20台内，导致"我的设备"卡片显示为空）
+        const adminIds = getAdminDeviceIds(env);
+        const missingAdminIds = adminIds.filter(id => !devKeys.includes('device_' + id));
+        if (missingAdminIds.length > 0) {
+          const adminDevs = await Promise.all(missingAdminIds.map(id => env.STATS_KV.get('device_' + id, 'json').catch(() => null)));
+          adminDevs.forEach(d => {
+            if (d) { d.visitorType = classifyVisitor(d, env); recentDevices.push(d); }
+          });
+        }
 
         return new Response(JSON.stringify({
           success: true,
@@ -869,6 +880,53 @@ export default {
         });
       }
       
+      // 路由：管理员回填访问者分类（2026-09-07 新增：遍历全部设备重算 visitorType 并写回，
+      // 用于清洗历史 unknown 快照。注意消耗 KV 写配额：每台设备 1 次写，免费版每日 1000 次上限）
+      if (path === '/api/admin/backfill-classify' && request.method === 'POST') {
+        const auth = await checkAdminAuth(request, env, url);
+        if (!auth.ok) return auth.response;
+
+        try {
+          const deviceList = await env.STATS_KV.get('unique_devices', 'json').catch(() => null) || [];
+          const devResults = await Promise.all(deviceList.map(id => env.STATS_KV.get('device_' + id, 'json').catch(() => null)));
+
+          let updated = 0, failed = 0, unchanged = 0;
+          const typeCount = { admin: 0, real: 0, bot: 0, unknown: 0 };
+
+          for (let i = 0; i < devResults.length; i++) {
+            const dev = devResults[i];
+            if (!dev) continue;
+            const newType = classifyVisitor(dev, env);
+            typeCount[newType] = (typeCount[newType] || 0) + 1;
+            if (dev.visitorType === newType) { unchanged++; continue; }
+            dev.visitorType = newType;
+            try {
+              await env.STATS_KV.put('device_' + deviceList[i], JSON.stringify(dev));
+              updated++;
+            } catch (e) {
+              failed++; // KV 写配额耗尽时跳过，已改为读取时动态分类，不影响展示
+            }
+          }
+
+          return new Response(JSON.stringify({
+            success: true,
+            total: deviceList.length,
+            updated: updated,
+            failed: failed,
+            unchanged: unchanged,
+            typeCount: typeCount,
+            message: '回填完成：更新 ' + updated + ' 台' + (failed > 0 ? '，' + failed + ' 台因写入配额跳过（展示不受影响，分类为读取时动态计算）' : '')
+          }), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        } catch (e) {
+          return new Response(JSON.stringify({ success: false, error: e.message }), {
+            status: 500,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+      }
+
       // 路由：管理员清理历史统计数据
       if (path === '/api/admin/clear-stats' && request.method === 'POST') {
         const auth = await checkAdminAuth(request, env, url);
@@ -1190,6 +1248,37 @@ function isAdminDevice(deviceId, env) {
 }
 
 /**
+ * 访问者动态分类（2026-09-07 新增，第二阶段核心）
+ * 取代"访问时写快照"的旧机制——每次读取统计时实时计算，历史 unknown 数据自动归位。
+ * 优先级：
+ *   1. deviceId 在管理员名单          → admin（金色）
+ *   2. Cloudflare bot 评分存在且 <30  → bot（灰色）
+ *   3. UA 命中爬虫特征库              → bot（灰色）
+ *   4. 累计停留 ≥60 秒                → real（绿色）
+ *   5. 其余                           → unknown（新访客，浅色）
+ */
+const BOT_UA_PATTERNS = /bot|crawl|spider|slurp|semrush|ahrefs|mj12|dotbot|petalbot|bytespider|yandex|baidu|sogou|360spy|headless|python-requests|python-urllib|curl\/|wget|scrapy|httpclient|okhttp|go-http|java\/|libwww|axios|node-fetch|postman/i;
+
+function classifyVisitor(device, env) {
+  if (!device) return 'unknown';
+  // 1. 管理员名单优先
+  if (isAdminDevice(device.deviceId, env)) return 'admin';
+  // 2. Cloudflare bot 评分（1-99，<30 大概率机器人；字段缺失时跳过）
+  if (typeof device.botScore === 'number' && device.botScore < 30) return 'bot';
+  // 3. UA 爬虫特征
+  const ua = device.userAgent || '';
+  if (ua && BOT_UA_PATTERNS.test(ua)) return 'bot';
+  // 4. 累计停留时长
+  if ((device.totalDuration || 0) >= 60) return 'real';
+  // 5. 新访客
+  return 'unknown';
+}
+
+function getAdminDeviceIds(env) {
+  return (env.ADMIN_DEVICE_IDS || '').split(',').map(s => s.trim()).filter(Boolean);
+}
+
+/**
  * 管理员统一鉴权（2026-09-06 新增，含防爆破锁定）
  * - 密码来源：X-Admin-Password 请求头（兼容 ?admin= 查询参数）
  * - 防爆破：同一 IP 15 分钟窗口内连续失败 5 次 → 锁定 15 分钟（KV 计数）
@@ -1252,7 +1341,7 @@ function generateInviteCode() {
 /**
  * 记录设备（累计，不重置）
  */
-async function recordDevice(kv, deviceId, ip, geo) {
+async function recordDevice(kv, deviceId, ip, geo, userAgent, botScore) {
   if (!kv || !deviceId) return;
   const country = geo?.country || 'UNKNOWN';
 
@@ -1268,7 +1357,7 @@ async function recordDevice(kv, deviceId, ip, geo) {
     deviceSet.add(deviceId);
     await kv.put(key, JSON.stringify([...deviceSet])).catch(() => {});
 
-    // 记录设备详情（含地理位置）
+    // 记录设备详情（含地理位置、UA、bot评分）
     await kv.put('device_' + deviceId, JSON.stringify({
       deviceId,
       firstIp: ip,
@@ -1279,14 +1368,18 @@ async function recordDevice(kv, deviceId, ip, geo) {
       firstSeen: new Date().toISOString(),
       lastSeen: new Date().toISOString(),
       visitCount: 1,
-      visitorType: 'unknown', // admin / bot / real
+      userAgent: userAgent || '',
+      botScore: (typeof botScore === 'number') ? botScore : null,
+      visitorType: 'unknown', // 存量字段保留兼容，读取时由 classifyVisitor 动态计算
     })).catch(() => {});
   } else {
-    // 已存在的设备：更新最近访问时间和访问次数
+    // 已存在的设备：更新最近访问时间、访问次数、最新UA与bot评分
     const deviceDetail = await kv.get('device_' + deviceId, 'json').catch(() => null);
     if (deviceDetail) {
       deviceDetail.lastSeen = new Date().toISOString();
       deviceDetail.visitCount = (deviceDetail.visitCount || 0) + 1;
+      if (userAgent) deviceDetail.userAgent = userAgent;
+      if (typeof botScore === 'number') deviceDetail.botScore = botScore;
       await kv.put('device_' + deviceId, JSON.stringify(deviceDetail)).catch(() => {});
     }
   }
