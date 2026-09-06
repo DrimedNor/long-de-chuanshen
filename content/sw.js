@@ -120,6 +120,21 @@ self.addEventListener("fetch", function (event) {
     return
   }
 
+  // ── knowledge.json（AI 知识库，11.7MB）：stale-while-revalidate ──
+  // 有缓存先秒开，后台静默更新；避免大文件反复走网络
+  if (url.pathname.indexOf("/knowledge.") === 0 && url.pathname.endsWith(".json")) {
+    event.respondWith((async function () {
+      const cache = await caches.open(CACHE)
+      const cached = await cache.match(req)
+      const fetchAndUpdate = fetch(req).then(function (res) {
+        if (res && res.status === 200) cache.put(req, res.clone())
+        return res
+      }).catch(function () { return cached })
+      return cached || fetchAndUpdate
+    })())
+    return
+  }
+
   // ── 其他（HTML/JS/CSS）：network-first，失败回退缓存 ──
   event.respondWith((async function () {
     const cache = await caches.open(CACHE)

@@ -11,6 +11,10 @@
 /audio/*
   Cache-Control: public, max-age=86400, immutable
 
+# 2.5) AI 知识库长缓存：大文件（约12MB），一天内不重复协商
+/knowledge.json
+  Cache-Control: public, max-age=86400
+
 # 3) 全局基础安全头
 /*
   X-Content-Type-Options: nosniff

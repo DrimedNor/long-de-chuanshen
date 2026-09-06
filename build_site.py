@@ -363,6 +363,12 @@ PAGE_TEMPLATE = r"""<!DOCTYPE html>
 <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
 <link rel="icon" type="image/png" sizes="64x64" href="assets/favicon-64.png">
 <title>@@SITE_TITLE@@</title>
+<!-- 分享卡片：微信/QQ 及社交平台抓取 -->
+<meta name="description" content="龙钦宁提资料库：上师开示、传承祖师、法音、书籍。">
+<meta property="og:title" content="龙的传人｜Longchen Nyingtik">
+<meta property="og:description" content="龙钦宁提资料库：上师开示、传承祖师、法音、书籍。">
+<meta property="og:image" content="https://longchen-nyingtik.wiki/assets/icon-512.png">
+<meta property="og:type" content="website">
 <style>
 :root{
   /* —— 背景：奶白 / 宣纸（白色=慈悲） —— */
@@ -3527,7 +3533,7 @@ function doPanelSearch(){
 }
 
 // ===== AI 问答功能 =====
-var AI_API_ENDPOINT = 'https://steep-rain-0d77longchen-ai-ask.drimednor.workers.dev';  // Cloudflare Workers 代理地址（配置后启用）
+var AI_API_ENDPOINT = 'https://ai.longchen-nyingtik.wiki';  // 自定义域名（workers.dev 在国内被 DNS 污染，不可用）
 var AI_API_KEY = '';        // API Key（通过代理传递，不在前端暴露）
 
 // 展开/收起问答框
@@ -3703,9 +3709,12 @@ function sendAiAsk(question){
   // 显示用户问题
   messages.innerHTML = '<div style="text-align:right;margin:.5rem 0;"><span style="display:inline-block;background:var(--accent);color:#fff;padding:.5rem .8rem;border-radius:12px 12px 2px 12px;max-width:80%;">' + esc(question) + '</span></div>';
 
-  // 显示"正在加载知识库"
+  // 显示"正在加载知识库"（首次约12MB，给出预期）
   var thinkingId = 'ai-thinking-' + Date.now();
-  messages.innerHTML += '<div id="' + thinkingId + '" style="text-align:left;margin:.5rem 0;color:var(--ink-faint);">正在加载知识库...</div>';
+  var kbHint = (typeof knowledgeLoaded !== 'undefined' && knowledgeLoaded)
+    ? '正在思考...'
+    : '正在加载资料库（首次约 12MB，建议 WiFi；加载一次后可秒开）...';
+  messages.innerHTML += '<div id="' + thinkingId + '" style="text-align:left;margin:.5rem 0;color:var(--ink-faint);">' + kbHint + '</div>';
   messages.scrollTop = messages.scrollHeight;
 
   // 先加载知识库（按需加载，首次使用时才下载）
@@ -3755,16 +3764,24 @@ function sendAiAsk(question){
     context += '4. 语气温暖平和、生活化，有智慧见地，给人希望和信心\n';
   }
   
+  // 15 秒超时：AI 无响应自动中止，降级显示本地搜索结果
+  var aiController = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+  var aiTimer = aiController ? setTimeout(function(){ aiController.abort(); }, 15000) : null;
+
   fetch(AI_API_ENDPOINT, {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
+    signal: aiController ? aiController.signal : undefined,
     body: JSON.stringify({
       question: question,
       context: context,
       hasContext: hasContext,
       related: related.map(function(r){ return {title: r.title, slug: r.slug}; })
     })
-  }).then(function(r){ return r.json(); })
+  }).then(function(r){
+    if (aiTimer) clearTimeout(aiTimer);
+    return r.json();
+  })
   .then(function(data){
     document.getElementById(thinkingId).remove();
     var answer = data.answer || data.response || '抱歉，AI 暂时无法回答，请稍后再试。';
@@ -3794,10 +3811,36 @@ function sendAiAsk(question){
     messages.innerHTML += answerHtml;
     messages.scrollTop = messages.scrollHeight;
   }).catch(function(err){
-    document.getElementById(thinkingId).remove();
-    messages.innerHTML += '<div style="text-align:left;margin:.5rem 0;color:#c0392b;">调用失败：' + esc(err.message) + '，请稍后重试。</div>';
+    if (aiTimer) clearTimeout(aiTimer);
+    renderAiFallback(thinkingId, related);
   });
   }); // 闭合 loadKnowledge().then()
+}
+
+// AI 请求失败/超时的降级显示：直接展示本地知识库搜索结果
+function renderAiFallback(thinkingId, related){
+  var tEl = document.getElementById(thinkingId);
+  if (tEl) tEl.remove();
+  var messages = document.getElementById('aiAskMessages');
+  if (related && related.length > 0){
+    var html = '<div style="text-align:left;margin:.5rem 0;color:var(--ink-faint);font-size:.85em;">AI 服务暂时不可用，以下是本站相关文章（点击可打开）：</div>';
+    html += '<div style="text-align:left;margin:.3rem 0 .5rem 0;padding-left:.5rem;">';
+    related.forEach(function(item, idx){
+      var path = item.slug.replace(/\//g, ' / ');
+      html += '<div class="search-result-item" style="padding:.25rem .5rem;margin:.15rem 0;font-size:.85em;cursor:pointer;border-radius:4px;" onclick="minimizeSearchPanel();go(\'' + item.slug.replace(/'/g, "\\'") + '\')">'
+        + '<div style="display:flex;align-items:baseline;gap:.3rem;">'
+        + '<span style="color:var(--gold-deep);font-weight:600;flex:0 0 auto;">[' + (idx+1) + ']</span>'
+        + '<span style="font-weight:500;">' + esc(item.title) + '</span>'
+        + '</div>'
+        + '<div style="font-size:.75em;color:var(--ink-faint);padding-left:1.2rem;margin-top:.1rem;">' + esc(path) + '</div>'
+        + '</div>';
+    });
+    html += '</div>';
+    messages.innerHTML += html;
+  } else {
+    messages.innerHTML += '<div style="text-align:left;margin:.5rem 0;"><span style="display:inline-block;background:var(--surface-soft);color:var(--ink);padding:.7rem 1rem;border-radius:12px 12px 12px 2px;max-width:90%;white-space:pre-wrap;line-height:1.7;">AI 服务暂时不可用，本站暂未收集到与该问题直接相关的资料。建议换个关键词试试，或稍后再使用 AI 问答。</span></div>';
+  }
+  messages.scrollTop = messages.scrollHeight;
 }
 
 
@@ -4044,6 +4087,8 @@ function setMediaMeta(t){
 
 function playTrack(idx){
   if (idx < 0 || idx >= AUDIO_TRACKS.length) return;
+  // 第一次播放时检查预加载偏好（弹出用户选择提示）
+  if (typeof checkPrefetchConsent === 'function') checkPrefetchConsent();
   // 音频播放统计：计算上一个音频的播放时长并上报
   var now = Date.now() / 1000;
   if (audioPlayName && audioPlayStartTime) {
@@ -4178,6 +4223,44 @@ playerAudio.addEventListener('ended', function(){
     document.getElementById('pPlay').textContent = '▶';
     updateMini();
   }
+});
+
+// ---- 音频连播预加载：播放到80%时提前拉取下一首（用户可选择是否开启） ----
+var prefetchedSrc = {};
+var prefetchConsentChecked = false;
+
+// 检查用户是否已选择预加载偏好，未选择则弹出提示
+function checkPrefetchConsent(){
+  if (prefetchConsentChecked) return;
+  prefetchConsentChecked = true;
+  var saved = localStorage.getItem('lct-audio-prefetch');
+  if (saved === '1' || saved === '0') return; // 已选择过
+  // 未选择过，弹出提示
+  var tip = document.createElement('div');
+  tip.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);z-index:9998;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:1rem;max-width:90%;width:320px;box-shadow:0 4px 20px rgba(0,0,0,.15);font-size:.9rem;line-height:1.6;';
+  tip.innerHTML = '<div style="margin-bottom:.6rem;font-weight:600;">连播预加载</div>'
+    + '<div style="color:var(--ink-soft);margin-bottom:.8rem;">开启后，播放到80%时会提前下载下一首，连播更流畅，但可能消耗更多流量。</div>'
+    + '<div style="display:flex;gap:.5rem;justify-content:flex-end;">'
+    + '<button onclick="this.parentElement.parentElement.remove();localStorage.setItem(\'lct-audio-prefetch\',\'0\')" style="padding:.4rem .8rem;border-radius:6px;border:1px solid var(--line);background:var(--surface);color:var(--ink-soft);cursor:pointer;">暂不开启</button>'
+    + '<button onclick="this.parentElement.parentElement.remove();localStorage.setItem(\'lct-audio-prefetch\',\'1\')" style="padding:.4rem .8rem;border-radius:6px;border:none;background:var(--accent);color:#fff;cursor:pointer;">开启</button>'
+    + '</div>';
+  document.body.appendChild(tip);
+}
+
+// 预加载下一首：播放超过80%时预取（fetch会进Service Worker缓存）
+playerAudio.addEventListener('timeupdate', function(){
+  if (!playerAudio.duration || playerAudio.duration <= 0) return;
+  if (playerAudio.currentTime / playerAudio.duration < 0.8) return;
+  // 检查用户是否开启了预加载
+  if (localStorage.getItem('lct-audio-prefetch') !== '1') return;
+  // 检查网络状态：数据节省模式或慢网络不预加载
+  if (navigator.connection && (navigator.connection.saveData || navigator.connection.effectiveType === 'slow-2g' || navigator.connection.effectiveType === '2g')) return;
+  var n = autoNext(curIdx);
+  if (n < 0 || !AUDIO_TRACKS[n]) return;
+  var src = AUDIO_TRACKS[n].src;
+  if (prefetchedSrc[src]) return;
+  prefetchedSrc[src] = true;
+  fetch(src, {cache: 'force-cache'}).catch(function(){});
 });
 playerAudio.addEventListener('play', function(){
   document.getElementById('pPlay').textContent = '⏸'; updateMini();
@@ -5001,6 +5084,32 @@ window.addEventListener('scroll', function(){
 })();
 
 </script>
+
+<!-- 微信内打开：引导跳系统浏览器以支持「添加到主屏幕」 -->
+<style>
+.wechat-tip{position:fixed;top:0;left:0;right:0;z-index:9999;background:var(--accent);color:#fff;
+  padding:.6rem 1rem .6rem 1.2rem;font-size:.85rem;line-height:1.6;cursor:pointer;
+  box-shadow:0 2px 10px rgba(59,42,34,.25);}
+.wechat-tip b{font-weight:600;}
+</style>
+<script>
+(function(){
+  if (!/MicroMessenger/i.test(navigator.userAgent)) return;      // 仅微信内显示
+  if (localStorage.getItem('lct-wechat-tip-dismissed')) return;    // 关闭过不再显示
+  var bar = document.createElement('div');
+  bar.className = 'wechat-tip';
+  bar.innerHTML = '想把它装到手机桌面、像 APP 一样使用？点右上角 <b>···</b> → 「在浏览器打开」，再用浏览器菜单「添加到主屏幕」';
+  bar.addEventListener('click', function(){
+    localStorage.setItem('lct-wechat-tip-dismissed', '1');
+    bar.remove();
+  });
+  document.body.appendChild(bar);
+})();
+</script>
+
+<!-- noscript 降级 -->
+<noscript><div style="padding:2rem 1rem;text-align:center;font-size:.95rem;">本站需要启用 JavaScript 才能浏览。请在浏览器设置中开启后刷新页面。</div></noscript>
+
 </body>
 </html>
 """
