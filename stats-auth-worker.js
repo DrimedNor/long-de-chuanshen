@@ -59,7 +59,10 @@ export default {
             longitude: request.cf?.longitude || '',
             timezone: request.cf?.timezone || '',
           };
-          await recordDevice(env.STATS_KV, deviceId, clientIP, geo);
+          // 2026-09-07：采集 UA 与 Cloudflare bot 评分，供访问者动态分类
+          const userAgent = request.headers.get('User-Agent') || '';
+          const botScore = request.cf?.botManagement?.score; // 免费版可能为 undefined
+          await recordDevice(env.STATS_KV, deviceId, clientIP, geo, userAgent, botScore);
         }
         
         // 所有IP都需要密码验证（不区分国内国外）
