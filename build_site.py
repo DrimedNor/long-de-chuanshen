@@ -399,6 +399,7 @@ PAGE_TEMPLATE = r"""<!DOCTYPE html>
   --indigo:#2f3a5c;        /* 链接 / 次级强调 */
   --indigo-soft:#4a577e;   /* 浅靛蓝：悬停 */
   --fs:1rem;
+  --serif:"Noto Serif SC","Source Han Serif SC","STZhongsong","STSong","SimSun",serif;  /* 标题衬线栈（本地系统字体，零外部依赖） */
 }
 
 /* 访问密码保护遮罩层 */
@@ -413,6 +414,14 @@ PAGE_TEMPLATE = r"""<!DOCTYPE html>
 .access-box .access-btn:hover{opacity:.9}
 .access-box .access-error{color:#c0392b;font-size:.85rem;margin-top:.8rem;min-height:1.2rem}
 .access-box .access-footer{margin-top:1.2rem;font-size:.75rem;color:var(--ink-faint);line-height:1.5}
+/* 访问页品牌标识：让第一眼看到"这是谁的站"，而非一个裸密码框 */
+.access-brand{margin-bottom:1rem}
+.access-brand-name{font-family:var(--serif);font-size:1.7rem;font-weight:700;color:var(--ink);letter-spacing:.12em}
+.access-brand-sub{margin-top:.4rem;font-size:.7rem;color:var(--gold-deep);letter-spacing:.16em}
+.access-brand-line{width:3.2rem;height:2px;background:var(--accent);margin:.85rem auto 0;border-radius:1px;opacity:.55}
+/* 访问页降权"验证"功能块，让品牌做主角 */
+#accessOverlay .access-icon{font-size:1.9rem;margin-bottom:.5rem}
+#accessOverlay h2{font-size:1.12rem;margin-bottom:.35rem}
 
 /* 暗色模式：深棕底 + 藏红/金黄调整亮度，保证可读性 */
 [data-theme="dark"]{
@@ -550,9 +559,9 @@ button:focus-visible, a:focus-visible{outline:2px solid var(--accent); outline-o
 .nav .nav-sec.open > .nav-sec-head .nav-chev{transform:rotate(90deg)}
 .nav .nav-sec-head .dir-label{flex:1; min-width:0; word-break:break-word}
 /* 层级配色与旧目录一致：一级最深深红 → 二级深红 → 三级金黄 → 四级浅褐 */
-.nav .nav-sec[data-depth="0"] > .nav-sec-head{font-size:1.7rem; font-weight:700; color:#6e1614;
+.nav .nav-sec[data-depth="0"] > .nav-sec-head{font-size:1.7rem; font-weight:700; color:#6e1614; font-family:var(--serif);
   padding:.55rem .5rem .3rem; letter-spacing:.02em}
-.nav .nav-sec[data-depth="1"] > .nav-sec-head{font-size:1.3rem; font-weight:600; color:#8a1f1c;
+.nav .nav-sec[data-depth="1"] > .nav-sec-head{font-size:1.12rem; font-weight:600; color:var(--ink-soft);
   padding:.5rem .5rem .25rem 1.2rem}
 .nav .nav-sec[data-depth="2"] > .nav-sec-head{font-size:1.08rem; font-weight:500; color:#8a6320;
   padding:.4rem .5rem .2rem 2.3rem}
@@ -588,7 +597,7 @@ button:focus-visible, a:focus-visible{outline:2px solid var(--accent); outline-o
 
 /* 内容区 */
 .content{flex:1; padding:2.6rem clamp(1.4rem, 6vw, 4.5rem) 9rem; max-width:820px; margin:0 auto}
-.article h1{font-size:1.85em; margin:.1rem 0 .7rem; line-height:1.35; font-weight:700}
+.article h1{font-size:1.85em; margin:.1rem 0 .7rem; line-height:1.35; font-weight:700; font-family:var(--serif)}
 .article h2{font-size:1.3em; margin:1.7em 0 .6em; padding-bottom:.35em; border-bottom:1px solid var(--line); font-weight:600}
 .article h3{font-size:1.1em; margin:1.5em 0 .4em; font-weight:600}
 .article h4,h5,h6{font-size:1em; margin:1.2em 0 .3em; font-weight:600}
@@ -1052,11 +1061,11 @@ button:active, .player-launch:active, .search-fab:active{transform:scale(.95)}
   .player .p-btn.p-play{width:3.9rem; height:3.9rem; font-size:1.45rem}
   .player .p-btn.p-skip{width:3.5rem; height:3.5rem; font-size:1.05rem}
   .player-launch{font-size:.9rem; padding:.6rem .9rem}
-  /* 移动端：避免右上角字号按钮挤压网站名 —— 隐藏「字号」字样、压缩药丸、品牌名省略号 */
+  /* 移动端：避免右上角字号按钮挤压网站名 —— 整组隐藏字号调节（桌面保留），品牌名省略号 */
   .topbar{gap:.4rem; padding:.6rem .9rem}
   .brand{flex:1 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:.92rem}
+  .fs-pill{display:none}
   .fs-cap{display:none}
-  .fs-pill{padding:.05rem .15rem; gap:0}
   .fs-pill button{width:1.7rem; height:1.7rem; font-size:.9rem}
   .player .p-footer{gap:.4rem; padding:.55rem .9rem}
   .player .p-pl-toggle{font-size:.82rem; padding:.3rem .7rem}
@@ -1232,6 +1241,11 @@ img{height:auto;max-width:100%}
 <!-- 访问密码保护遮罩层（默认隐藏） -->
 <div class="access-overlay" id="accessOverlay" style="display:none">
   <div class="access-box">
+    <div class="access-brand">
+      <div class="access-brand-name">龙的传人</div>
+      <div class="access-brand-sub">LONGCHEN NYINGTIK · 龙钦宁提资料库</div>
+      <div class="access-brand-line"></div>
+    </div>
     <div class="access-icon">🔒</div>
     <h2>访问验证</h2>
     <p class="access-desc">本站为个人学习使用，非公开用途。<br>访问请输入密码：</p>
@@ -2031,6 +2045,19 @@ var AUDIO_TRACKS = @@AUDIO_TRACKS_JSON@@;
 var HOME_UPDATE_HTML = @@HOME_UPDATE_JSON@@;   // 首页「本次更新内容」区块（纯用户资料，不含技术调整）
 var HOME_UPDATE_DATE = "@@HOME_UPDATE_DATE@@"; // 首页公告区标题用的更新日期（取自内容文件 frontmatter date 字段）
 var KNOWLEDGE_BASE = @@KNOWLEDGE_BASE_JSON@@;  // AI问答知识库索引（按需加载，初始为空）
+
+// ---- 首页「等N项内容更新」点击展开（事件委托，首页动态渲染也生效）----
+document.addEventListener('click', function(e){
+  var t = e.target.closest ? e.target.closest('.upd-toggle') : null;
+  if(!t) return;
+  var more = t.querySelector('.upd-more');
+  if(!more) return;
+  var show = more.hidden;
+  more.hidden = !show;
+  var n = more.children.length + 3;
+  t.firstChild.nodeValue = show ? '收起更新列表 ▴' : '等 ' + n + ' 项内容更新 ▾';
+});
+
 var knowledgeLoaded = false;
 var knowledgeLoadingPromise = null;
 
@@ -5441,7 +5468,7 @@ def main():
     recent_items = recent_items[:10]
     if recent_items:
         html_parts = ['<ul>']
-        display_items = recent_items[:3]  # 最多显示3项
+        display_items = recent_items[:3]  # 最多显示3项（固定清单 11.1.4）
         for item in display_items:
             icon = '📄' if item['type'] == 'article' else '🎧'
             if item['slug']:
@@ -5449,7 +5476,18 @@ def main():
             else:
                 html_parts.append(f'<li>{icon} {item["title"]}</li>')
         if len(recent_items) > 3:
-            html_parts.append(f'<li style="color:var(--ink-faint);font-size:.9em;">等 {len(recent_items)} 项内容更新</li>')
+            # 「等N项内容更新」从死文本升级为可点击展开：文案不变，点击显示其余更新项
+            more_parts = []
+            for it in recent_items[3:]:
+                icon = '📄' if it['type'] == 'article' else '🎧'
+                if it['slug']:
+                    more_parts.append(f'<li>{icon} <a href="#/{it["slug"]}" style="color:var(--accent);">{it["title"]}</a></li>')
+                else:
+                    more_parts.append(f'<li>{icon} {it["title"]}</li>')
+            html_parts.append(
+                f'<li class="upd-toggle" style="color:var(--accent);font-size:.9em;cursor:pointer;" '
+                f'role="button" tabindex="0">等 {len(recent_items)} 项内容更新 ▾'
+                f'<ul class="upd-more" hidden style="margin-top:.35em">{"".join(more_parts)}</ul></li>')
         html_parts.append('</ul>')
         home_update_html = ''.join(html_parts)
         home_update_date = datetime.datetime.fromtimestamp(recent_items[0]['mtime']).strftime('%Y-%m-%d')
