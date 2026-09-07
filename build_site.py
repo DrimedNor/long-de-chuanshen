@@ -5645,10 +5645,10 @@ def main():
                         # 长段落再拆分
                         for j in range(0, len(para), 400):
                             chunk = para[j:j+500]
+                            # 段落条目不带 tags（瘦身：tags 仅保留在文章级条目，检索时文章级兜底）
                             knowledge_base.append({
                                 "slug": slug,
                                 "title": title,
-                                "tags": tags,
                                 "content": chunk,
                                 "type": "paragraph",
                                 "paragraphIndex": i
