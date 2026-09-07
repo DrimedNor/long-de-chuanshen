@@ -2325,8 +2325,9 @@ function show(slug){
   if (isHome){
     inner = '<div class="welcome"><div class="big">' + esc(SITE_TITLE) + '</div>'
           + '<div class="welcome-sub"><span class="ws-line"></span>龙钦宁提资料库<span class="ws-line"></span></div>'
-          + '<div class="welcome-lead">上师的开示、祖师的故事、可以听的法音，都在这里——从上往下按顺序读就好。<br>'
+          + '<div class="welcome-lead">上师的开示、祖师的故事、可以听的法音，都在这里——想听法音往下看，想系统学习就按顺序读。<br>'
           + '<span class="welcome-hint">想找具体内容？点左上角 ☰ 打开目录，或直接在搜索框输入关键词。</span></div></div>'
+          + '<div id="resume-listen-card"></div>'
           + '<section class="hn-sec home-update"><h2 class="hn-sec-title">最近更新 · ' + HOME_UPDATE_DATE + '</h2>'
           + HOME_UPDATE_HTML + '</section>'
           + p.html + renderHomeNav();
@@ -3025,7 +3026,8 @@ function renderHomeNav(){
     '书籍': {icon:'📚', title:'书籍', desc:'精选读物与参考资料，点击进入查看。'}
   };
   // 固定首页板块顺序：一级目录按指定顺序，其余新增目录排在末尾
-  var ORDER = ['上师开示', '龙钦宁提传承', '音频资源', '书籍'];
+  // 2026-09-07 音频优先：用户习惯更偏"听"，音频资源提到首位（内部分组保持不变）
+  var ORDER = ['音频资源', '上师开示', '龙钦宁提传承', '书籍'];
   var dirNames = Object.keys(TREE.dirs).sort(function(a, b){
     var ia = ORDER.indexOf(a), ib = ORDER.indexOf(b);
     if (ia < 0) ia = 99; if (ib < 0) ib = 99;
@@ -3170,7 +3172,45 @@ function renderHomeNav(){
   html.push('<div class="ai-ask-text"><div class="ai-ask-title">龙的传人 · AI 问答</div><div class="ai-ask-desc">点击打开问答面板，AI 基于上师开示等资料为你解答</div></div></div>');
   html.push('</div>');
   html.push('</section>');
+  // 首页渲染后填充「继续上次听」卡片（DOM 插入后执行）
+  setTimeout(initResumeListenCard, 0);
   return '<div class="home-nav">' + html.join('') + '</div>';
+}
+
+// ========== 首页「继续上次听」卡片（2026-09-07 音频优先改版）==========
+// 读取播放记忆（longchen-audio-cur / longchen-audio-pos-{idx}），回访用户一键续播；
+// 未听过或进度 <5 秒时不显示，对新人不打扰。
+function fmtListenSec(s){
+  s = Math.max(0, Math.floor(s || 0));
+  var m = Math.floor(s / 60), ss = s % 60;
+  return m + ':' + (ss < 10 ? '0' : '') + ss;
+}
+function initResumeListenCard(){
+  var box = document.getElementById('resume-listen-card');
+  if (!box) return;
+  var idxStr = null;
+  try { idxStr = localStorage.getItem('longchen-audio-cur'); } catch(e){}
+  if (idxStr === null || idxStr === '') return;
+  var idx = parseInt(idxStr, 10);
+  if (isNaN(idx) || !AUDIO_TRACKS[idx]) return;
+  var pos = 0;
+  try { pos = parseFloat(localStorage.getItem('longchen-audio-pos-' + idx) || '0') || 0; } catch(e){}
+  if (pos < 5) return;
+  var t = AUDIO_TRACKS[idx];
+  var dur = t.duration ? ' · 共 ' + fmtListenSec(t.duration) : '';
+  box.innerHTML = '<div class="resume-card" style="margin:0 0 1.2rem;border:1px solid var(--line-strong);background:var(--surface);border-radius:12px;padding:.9rem 1rem;display:flex;align-items:center;gap:.85rem;">'
+    + '<button onclick="resumeLastAudio()" title="继续播放" aria-label="继续播放" style="flex:0 0 auto;width:46px;height:46px;border-radius:50%;border:none;background:var(--accent);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;">'
+    + '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></button>'
+    + '<div style="min-width:0;flex:1;">'
+    + '<div style="font-size:.75rem;color:var(--ink-faint);">继续上次听</div>'
+    + '<div style="font-size:.95rem;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">《' + esc(t.title) + '》</div>'
+    + '<div style="font-size:.75rem;color:var(--ink-faint);">已听至 ' + fmtListenSec(pos) + dur + '</div>'
+    + '</div></div>';
+}
+function resumeLastAudio(){
+  var idx = null;
+  try { idx = parseInt(localStorage.getItem('longchen-audio-cur'), 10); } catch(e){}
+  if (idx !== null && !isNaN(idx)) playTrack(idx);
 }
 
 // ---- 目录 Index 完整目录树：展示该目录下所有层级的子目录+文章（类似首页导览，无需逐级点开）----
