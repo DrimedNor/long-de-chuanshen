@@ -31,3 +31,6 @@ watch_err.txt
 *_backup*/
 *_backup_*/
 content_backup_*/
+
+# 归档暂存区（2026-09-07 清理，见 _archive/2026-09-07-清理清单.md）
+_archive/

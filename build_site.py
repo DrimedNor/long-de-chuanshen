@@ -1917,8 +1917,25 @@ function reportDuration() {
   pageEnterTime = now;
 }
 
-// 每隔30秒上报一次累计时长
-durationFlushTimer = setInterval(reportDuration, 30000);
+// 每隔120秒上报一次累计时长（2026-09-07 降频：30s→120s，缓解 KV 写配额压力）
+// 页面隐藏时暂停心跳并结算，挂机不再产生无效写
+function startDurationTimer() {
+  if (durationFlushTimer) return;
+  durationFlushTimer = setInterval(reportDuration, 120000);
+}
+function stopDurationTimer() {
+  if (durationFlushTimer) { clearInterval(durationFlushTimer); durationFlushTimer = null; }
+}
+document.addEventListener('visibilitychange', function() {
+  if (document.hidden) {
+    reportDuration();            // 结算隐藏前的时长
+    stopDurationTimer();
+  } else {
+    pageEnterTime = Date.now();  // 从重新可见时刻起算，隐藏期间不计入
+    startDurationTimer();
+  }
+});
+startDurationTimer();
 
 // 监听页面切换（hash变化）
 window.addEventListener('hashchange', function() {
@@ -3755,11 +3772,11 @@ function sendAiAsk(question){
   // 显示用户问题
   messages.innerHTML = '<div style="text-align:right;margin:.5rem 0;"><span style="display:inline-block;background:var(--accent);color:#fff;padding:.5rem .8rem;border-radius:12px 12px 2px 12px;max-width:80%;">' + esc(question) + '</span></div>';
 
-  // 显示"正在加载知识库"（首次约12MB，给出预期）
+  // 显示"正在加载知识库"（首次约3MB，已压缩传输，给出预期）
   var thinkingId = 'ai-thinking-' + Date.now();
   var kbHint = (typeof knowledgeLoaded !== 'undefined' && knowledgeLoaded)
     ? '正在思考...'
-    : '正在加载资料库（首次约 12MB，建议 WiFi；加载一次后可秒开）...';
+    : '正在加载资料库（首次约 3MB，加载一次后可秒开）...';
   messages.innerHTML += '<div id="' + thinkingId + '" style="text-align:left;margin:.5rem 0;color:var(--ink-faint);">' + kbHint + '</div>';
   messages.scrollTop = messages.scrollHeight;
 
@@ -5640,7 +5657,6 @@ def main():
                         knowledge_base.append({
                             "slug": slug,
                             "title": title,
-                            "tags": tags,
                             "content": para,
                             "type": "paragraph",
                             "paragraphIndex": i
