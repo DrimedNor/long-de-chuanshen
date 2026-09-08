@@ -829,6 +829,8 @@ button:active, .player-launch:active, .search-fab:active{transform:scale(.95)}
 
 /* 欢迎页 */
 .welcome{text-align:center; padding:2.4rem 1rem 2rem; border-top:3px double var(--line-strong); border-bottom:1px solid var(--line); margin-bottom:1.6rem}
+/* 首页 hero 水墨横幅：负 margin 顶满 welcome 区两侧（贴住内容区边缘） */
+.welcome-hero{display:block; width:calc(100% + 2rem); max-width:none; height:220px; object-fit:cover; object-position:center 38%; margin:-2.4rem -1rem 1.3rem; border-radius:0 0 10px 10px}
 .welcome .big{font-size:2.2em; color:var(--accent); font-weight:700; margin-bottom:.6rem; letter-spacing:.12em}
 .welcome .welcome-sub{display:flex; align-items:center; justify-content:center; gap:.9rem; color:var(--ink-faint); font-size:.95em}
 .welcome .ws-line{display:inline-block; width:3.2em; height:1px; background:var(--line-strong)}
@@ -1079,6 +1081,7 @@ button:active, .player-launch:active, .search-fab:active{transform:scale(.95)}
   .content{padding:1.1rem 1.1rem 9rem}
   /* 首页 welcome 紧凑化：标题由顶栏品牌栏承担（welcome .big 移动端隐藏避免重复），「龙钦宁提资料库」保持小字副标题 */
   .welcome{padding:.95rem .9rem .9rem; margin-bottom:.9rem}
+  .welcome-hero{width:calc(100% + 1.8rem); margin:-.95rem -.9rem .8rem; height:120px; border-radius:0 0 8px 8px}
   .welcome .big{display:none}
   .welcome .welcome-lead{margin-top:.6rem; line-height:1.7}
   /* 首页面包屑只有「主页」一词，移动端隐藏省一整条 */
@@ -2280,7 +2283,7 @@ function show(slug){
   // 文章页（非目录 index）不加分享按钮
   var inner = titleHtml + metaHtml + tocHtml + p.html;
   if (isHome){
-    inner = '<div class="welcome"><div class="big">' + esc(SITE_TITLE) + '</div>'
+    inner = '<div class="welcome"><img class="welcome-hero" src="assets/hero-home.webp" alt="水墨山云横幅" width="1536" height="936"><div class="big">' + esc(SITE_TITLE) + '</div>'
           + '<div class="welcome-sub"><span class="ws-line"></span>龙钦宁提资料库<span class="ws-line"></span></div>'
           + '<div class="welcome-lead">上师的开示、祖师的故事、可以听的法音，都在这里……</div></div>'
           + renderHomeCards()
@@ -5854,6 +5857,12 @@ def main():
         if os.path.exists(icon_src):
             shutil.copy2(icon_src, os.path.join(assets_dir, icon_name))
     print("PWA图标已复制: 6个")
+
+    # 首页 hero 水墨横幅（content/assets 被 walker 排除，这里显式复制）
+    hero_src = os.path.join(CONTENT_DIR, "assets", "hero-home.webp")
+    if os.path.exists(hero_src):
+        shutil.copy2(hero_src, os.path.join(assets_dir, "hero-home.webp"))
+        print("首页hero横幅已复制: hero-home.webp")
 
     # 复制 content/sw.js 到 dist/ 根（Service Worker：音频离线缓存 + 页面更新策略）
     sw_src = os.path.join(CONTENT_DIR, "sw.js")
