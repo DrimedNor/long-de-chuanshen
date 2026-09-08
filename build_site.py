@@ -479,6 +479,8 @@ button:focus-visible, a:focus-visible{outline:2px solid var(--accent); outline-o
   background:rgba(38,32,28,.92);
 }
 .brand{font-size:1rem; font-weight:600; color:var(--ink); letter-spacing:.06em}
+/* 首页顶栏不再重复品牌名（welcome 区已有主视觉），非首页保留作位置标识 */
+body.is-home .brand{display:none}
 .brand small{color:var(--ink-faint); font-weight:400; margin-left:.5em; letter-spacing:0}
 .topbar .spacer{flex:1}
 .menu-btn{display:none; border:none; background:none; color:var(--ink);
@@ -1077,9 +1079,15 @@ button:active, .player-launch:active, .search-fab:active{transform:scale(.95)}
     transition:transform .2s; z-index:15; width:260px; background:var(--bg)}
   .sidebar.open{transform:translateX(0)}
   .sidebar-close{display:block}
-  .content{padding:1.6rem 1.1rem 9rem}
-  .welcome .big{font-size:1.2em; letter-spacing:.04em; white-space:nowrap}
-  .welcome .ws-line{width:2.2em}
+  .content{padding:1.1rem 1.1rem 9rem}
+  /* 首页 welcome 紧凑化：顶栏品牌名已隐藏（body.is-home），副题「龙钦宁提资料库」升级为移动端主视觉 */
+  .welcome{padding:.95rem .9rem .9rem; margin-bottom:.9rem}
+  .welcome .big{display:none}
+  .welcome .welcome-sub{font-size:1.22em; color:var(--accent); font-weight:700; letter-spacing:.04em}
+  .welcome .ws-line{width:1.6em}
+  .welcome .welcome-lead{margin-top:.6rem; line-height:1.7}
+  /* 首页面包屑只有「主页」一词，移动端隐藏省一整条 */
+  .crumb-home{display:none}
   .player{height:auto; min-height:34vh; max-height:34vh}
   .player.pl-open{max-height:80vh}
   .player .p-controls{gap:.7rem; padding:.85rem}
@@ -2250,6 +2258,8 @@ function show(slug){
   }
   if (currentSlug === slug) return;
   currentSlug = slug;
+  // 首页标记：顶栏隐藏品牌名（welcome 已有主视觉），CSS 据此收紧首页留白
+  document.body.classList.toggle('is-home', p.slug === 'index');
   var meta = '';
   if (p.meta.author) meta += '<span>作者：' + esc(p.meta.author) + '</span>';
   if (p.meta.source_url) meta += '<span class="src"><a href="' + esc(p.meta.source_url) + '" target="_blank" rel="noopener">查看原文 ↗</a></span>';
@@ -2279,8 +2289,7 @@ function show(slug){
   if (isHome){
     inner = '<div class="welcome"><div class="big">' + esc(SITE_TITLE) + '</div>'
           + '<div class="welcome-sub"><span class="ws-line"></span>龙钦宁提资料库<span class="ws-line"></span></div>'
-          + '<div class="welcome-lead">上师的开示、祖师的故事、可以听的法音，都在这里……<br>'
-          + '<span class="welcome-hint">想找具体内容？点左上角 ☰ 打开目录，或直接在搜索框输入关键词。</span></div></div>'
+          + '<div class="welcome-lead">上师的开示、祖师的故事、可以听的法音，都在这里……</div></div>'
           + renderHomeCards()
           + '<div id="resume-listen-card"></div>'
           + '<section class="hn-sec home-update"><h2 class="hn-sec-title">最近更新 · ' + HOME_UPDATE_DATE + '</h2>'
@@ -2306,6 +2315,7 @@ function show(slug){
     }
   }
   var crumb = renderBreadcrumb(p);
+  if (isHome) crumb = crumb.replace('class="breadcrumb"', 'class="breadcrumb crumb-home"');
   // 文章底部导航：上一篇/下一篇、回到首页/回到分类（仅非目录页）
   if (!p.is_index && !isHome) {
     var navHtml = '<div class="article-bottom-nav">';
