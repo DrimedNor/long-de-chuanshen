@@ -414,14 +414,6 @@ PAGE_TEMPLATE = r"""<!DOCTYPE html>
 .access-box .access-btn:hover{opacity:.9}
 .access-box .access-error{color:#c0392b;font-size:.85rem;margin-top:.8rem;min-height:1.2rem}
 .access-box .access-footer{margin-top:1.2rem;font-size:.75rem;color:var(--ink-faint);line-height:1.5}
-/* 访问页品牌标识：让第一眼看到"这是谁的站"，而非一个裸密码框 */
-.access-brand{margin-bottom:1rem}
-.access-brand-name{font-family:var(--serif);font-size:1.7rem;font-weight:700;color:var(--ink);letter-spacing:.12em}
-.access-brand-sub{margin-top:.4rem;font-size:.7rem;color:var(--gold-deep);letter-spacing:.16em}
-.access-brand-line{width:3.2rem;height:2px;background:var(--accent);margin:.85rem auto 0;border-radius:1px;opacity:.55}
-/* 访问页降权"验证"功能块，让品牌做主角 */
-#accessOverlay .access-icon{font-size:1.9rem;margin-bottom:.5rem}
-#accessOverlay h2{font-size:1.12rem;margin-bottom:.35rem}
 
 /* 暗色模式：深棕底 + 藏红/金黄调整亮度，保证可读性 */
 [data-theme="dark"]{
@@ -1275,14 +1267,8 @@ img{height:auto;max-width:100%}
 <!-- 访问密码保护遮罩层（默认隐藏） -->
 <div class="access-overlay" id="accessOverlay" style="display:none">
   <div class="access-box">
-    <div class="access-brand">
-      <div class="access-brand-name">龙的传人</div>
-      <div class="access-brand-sub">LONGCHEN NYINGTIK · 龙钦宁提资料库</div>
-      <div class="access-brand-line"></div>
-    </div>
     <div class="access-icon">🔒</div>
-    <h2>访问验证</h2>
-    <p class="access-desc">本站为个人学习使用，非公开用途。<br>访问请输入密码：</p>
+    <p class="access-desc">本站仅为个人学习使用，访问请输入密码：</p>
     <input type="password" id="accessPasswordInput" placeholder="请输入访问密码" />
     <button class="access-btn" id="accessSubmitBtn">进入网站</button>
     <div class="access-error" id="accessError"></div>
@@ -2386,7 +2372,7 @@ function show(slug){
   if (isHome){
     inner = '<div class="welcome"><div class="big">' + esc(SITE_TITLE) + '</div>'
           + '<div class="welcome-sub"><span class="ws-line"></span>龙钦宁提资料库<span class="ws-line"></span></div>'
-          + '<div class="welcome-lead">上师的开示、祖师的故事、可以听的法音，都在这里——想听法音往下看，想系统学习就按顺序读。<br>'
+          + '<div class="welcome-lead">上师的开示、祖师的故事、可以听的法音，都在这里……<br>'
           + '<span class="welcome-hint">想找具体内容？点左上角 ☰ 打开目录，或直接在搜索框输入关键词。</span></div></div>'
           + renderHomeCards()
           + '<div id="resume-listen-card"></div>'
