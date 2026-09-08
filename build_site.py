@@ -1272,19 +1272,17 @@ img{height:auto;max-width:100%}
     <input type="password" id="accessPasswordInput" placeholder="请输入访问密码" />
     <button class="access-btn" id="accessSubmitBtn">进入网站</button>
     <div class="access-error" id="accessError"></div>
-    <button class="pwa-install-btn" id="pwaInstallBtn" style="display:none;margin-top:1rem;padding:.6rem 1.2rem;background:#8a1f1c;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:.9rem;">
-      📱 安装到桌面（锁屏可听法音）
-    </button>
   </div>
 </div>
 
 <!-- PWA安装引导浮层（默认隐藏） -->
 <div class="pwa-install-hint" id="pwaInstallHint" style="display:none">
   <div class="pwa-title">📱 像 App 一样使用本站</div>
-  <div class="pwa-desc">点浏览器底部「⇧ 分享」按钮 → 选「添加到主屏幕」→ 从主屏幕打开，即可<strong>锁屏继续听法音</strong>、锁屏遥控播放。</div>
+  <div class="pwa-desc" id="pwaHintDesc">点浏览器底部「⇧ 分享」按钮 → 选「添加到主屏幕」→ 从主屏幕打开，即可<strong>锁屏继续听法音</strong>、锁屏遥控播放。</div>
   <div class="pwa-btns">
+    <button class="pwa-btn pwa-btn-ok" id="pwaInstallBtn" style="display:none">⬇️ 安装到桌面</button>
     <button class="pwa-btn pwa-btn-close" id="pwaHintClose">不再提示</button>
-    <button class="pwa-btn pwa-btn-ok" id="pwaHintOk">知道了</button>
+    <button class="pwa-btn pwa-btn-close" id="pwaHintOk">知道了</button>
   </div>
 </div>
 
@@ -1296,21 +1294,6 @@ img{height:auto;max-width:100%}
     <button class="pwa-btn pwa-btn-ok" id="wechatHintOk">知道了</button>
   </div>
 </div>
-<!-- 注册申请遮罩层（默认隐藏，设备数达到 100 后显示） -->
-<div class="register-overlay access-overlay" id="registerOverlay" style="display:none">
-  <div class="access-box">
-    <div class="access-icon">📝</div>
-    <h2>注册申请</h2>
-    <p class="access-desc">本站仅为个人学习使用，需注册审核后访问。<br>请填写以下信息，管理员审核通过后即可访问。</p>
-    <input type="text" id="regNickname" placeholder="您的昵称（必填）" style="margin-bottom:.8rem" />
-    <textarea id="regReason" placeholder="申请理由（必填，如：学佛同修、朋友推荐等）" style="width:100%;padding:.8rem 1rem;border:2px solid var(--line);border-radius:10px;font-size:.9rem;font-family:inherit;background:var(--surface-soft);color:var(--ink);box-sizing:border-box;margin-bottom:.8rem;min-height:80px;resize:vertical"></textarea>
-    <input type="text" id="regContact" placeholder="联系方式（选填，方便管理员联系）" style="margin-bottom:1rem" />
-    <button class="access-btn" id="regSubmitBtn">提交申请</button>
-    <div class="access-error" id="regError"></div>
-  </div>
-</div>
-
-
 <div class="topbar">
   <button class="menu-btn" id="menuBtn" aria-label="打开导航菜单">☰</button>
   <span class="brand" id="brandHome" style="cursor:pointer">@@SITE_TITLE@@<small id="pageCrumbs"></small></span>
@@ -1445,7 +1428,6 @@ if ('serviceWorker' in navigator){
 var STATS_API = "https://stats.longchen-nyingtik.wiki";
 var ACCESS_KEY = "longchen-access-granted";
 var DEVICE_KEY = "longchen-device-id";
-var REG_KEY = "longchen-reg-id";
 
 // 生成或获取设备 ID
 function getDeviceId() {
@@ -1505,48 +1487,20 @@ async function checkAccess() {
     return true;
   }
   
-  // 已注册并审核通过，直接通过
-  var regId = localStorage.getItem(REG_KEY);
-  if (regId) {
-    try {
-      var resp = await fetchWithDevice(STATS_API + "/api/login", {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ regId: regId })
-      });
-      var data = await resp.json();
-      if (data.success) {
-        return true;
-      }
-    } catch (e) {
-      console.warn("登录验证失败:", e);
-    }
-  }
-  
   if (!STATS_API) return true;
   
   try {
     var response = await fetchWithDevice(STATS_API + "/api/track");
     var data = await response.json();
     
-    // 不需要密码和注册，直接通过
-    if (!data.needPassword && !data.needRegister) {
+    // 不需要密码，直接通过（注册功能已移除，needRegister 不再处理）
+    if (!data.needPassword) {
       return true;
     }
     
-    // 需要注册审核
-    if (data.needRegister) {
-      showRegisterOverlay();
-      return false;
-    }
-    
     // 需要密码
-    if (data.needPassword) {
-      showAccessOverlay();
-      return false;
-    }
-    
-    return true;
+    showAccessOverlay();
+    return false;
   } catch (e) {
     console.warn("统计 API 调用失败，默认放行:", e);
     return true;
@@ -1566,18 +1520,9 @@ function showAccessOverlay() {
   }
 }
 
-// 显示注册界面
-function showRegisterOverlay() {
-  var overlay = document.getElementById('registerOverlay');
-  if (overlay) {
-    overlay.style.display = 'flex';
-    document.body.style.overflow = 'hidden';
-  }
-}
-
 // 隐藏所有遮罩
 function hideOverlays() {
-  var overlays = document.querySelectorAll('.access-overlay, .register-overlay');
+  var overlays = document.querySelectorAll('.access-overlay');
   overlays.forEach(function(o) { o.style.display = 'none'; });
   document.body.style.overflow = '';
 }
@@ -1614,41 +1559,6 @@ async function verifyAccessPassword() {
   }
 }
 
-// 提交注册申请
-async function submitRegistration() {
-  var nickname = document.getElementById('regNickname').value;
-  var reason = document.getElementById('regReason').value;
-  var contact = document.getElementById('regContact').value;
-  var errorDiv = document.getElementById('regError');
-  
-  if (!nickname || !reason) {
-    if (errorDiv) errorDiv.textContent = '请填写昵称和申请理由';
-    return;
-  }
-  
-  try {
-    var response = await fetchWithDevice(STATS_API + "/api/register", {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ nickname: nickname, reason: reason, contact: contact })
-    });
-    var data = await response.json();
-    
-    if (data.success) {
-      localStorage.setItem(REG_KEY, data.regId);
-      if (errorDiv) {
-        errorDiv.style.color = '#27ae60';
-        errorDiv.textContent = '注册申请已提交，请等待管理员审核。审核通过后刷新页面即可访问。';
-      }
-    } else {
-      if (errorDiv) errorDiv.textContent = data.message || '提交失败，请重试';
-    }
-  } catch (e) {
-    console.warn("注册失败:", e);
-    if (errorDiv) errorDiv.textContent = '网络错误，请稍后重试';
-  }
-}
-
 // 初始化访问控制
 function initAccessControl() {
   // 密码提交按钮
@@ -1663,20 +1573,17 @@ function initAccessControl() {
     });
   }
   
-  // 注册提交按钮
-  var regBtn = document.getElementById('regSubmitBtn');
-  if (regBtn) regBtn.onclick = submitRegistration;
-  
-  // PWA手动安装按钮（解决密码页面干扰Chrome自动检测的问题）
+  // PWA手动安装按钮：从密码页后移到站内「像 App 一样使用本站」引导浮层（与新手指引同处）
   var deferredInstallPrompt = null;
   var installBtn = document.getElementById('pwaInstallBtn');
   
-  // 捕获beforeinstallprompt事件
+  // 捕获beforeinstallprompt事件（按钮在站内引导浮层中，捕获后记录到 window 供浮层判断）
   window.addEventListener('beforeinstallprompt', function(e) {
     e.preventDefault();
     deferredInstallPrompt = e;
-    if (installBtn) installBtn.style.display = 'block';
-    console.log('PWA: beforeinstallprompt已捕获，显示安装按钮');
+    window._deferredInstall = e;
+    if (installBtn) installBtn.style.display = 'inline-block';
+    console.log('PWA: beforeinstallprompt已捕获，站内浮层显示安装按钮');
   });
   
   // 点击安装按钮触发安装
@@ -4092,8 +3999,8 @@ function matchByTitle(t){
     return; // 微信中不显示PWA安装引导
   }
 
-  // iOS Safari且未安装PWA：用户第一次点播放时弹出安装引导
-  if (isIOS && !isStandalone) {
+  // iOS/Android 且未安装 PWA：用户第一次点播放时弹出安装引导（安装按钮由 beforeinstallprompt 捕获后显示）
+  if ((isIOS || window._deferredInstall) && !isStandalone) {
     try {
       var dismissed = localStorage.getItem('pwa_install_hint_dismissed');
       if (dismissed) return;
@@ -4101,6 +4008,12 @@ function matchByTitle(t){
       var pwaHint = document.getElementById('pwaInstallHint');
       var pwaOk = document.getElementById('pwaHintOk');
       var pwaClose = document.getElementById('pwaHintClose');
+
+      // 按平台区分提示文案：iOS 靠系统菜单安装，安卓靠下方按钮一键安装
+      var pwaDescEl = document.getElementById('pwaHintDesc');
+      if (pwaDescEl && !isIOS) {
+        pwaDescEl.innerHTML = '点击下方「⬇️ 安装到桌面」按钮，把本站装成 App，即可<strong>锁屏继续听法音</strong>、锁屏遥控播放。';
+      }
 
       if (pwaOk) pwaOk.addEventListener('click', function(){
         if (pwaHint) pwaHint.style.display = 'none';
