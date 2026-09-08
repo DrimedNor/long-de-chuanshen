@@ -843,6 +843,40 @@ button:active, .player-launch:active, .search-fab:active{transform:scale(.95)}
 .welcome .welcome-lead{margin-top:1.1rem; color:var(--ink-soft); font-size:.98em; line-height:2}
 .welcome .welcome-hint{color:var(--ink-faint); font-size:.9em}
 
+/* 首页分流卡片：给新人的四条主路径入口（听法音 / 读开示 / 了解传承 / 查书）
+   只增不删：插在欢迎语之后，不动任何既有文案与结构
+   颜色全部走 var()，深色模式由 [data-theme="dark"] 变量覆盖自动跟随
+   动效只用 transform / background-color / border-color / color
+   降权：1px 描边 + 无阴影，视觉权重低于下方「最近更新」的 4px 左边框 */
+.home-cards{margin:1.1rem 0 1.5rem; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.875rem}
+.hc-card{display:flex; align-items:center; gap:.7rem; padding:.7rem .85rem; min-height:68px;
+  border:1px solid var(--line); border-radius:12px; background:var(--surface); color:var(--ink); text-decoration:none;
+  transition:transform .18s ease, background-color .18s ease, border-color .18s ease}
+.hc-card:hover{border-color:var(--line-strong); background:var(--surface-soft); transform:translateY(-1px)}
+.hc-card:focus-visible{outline:2px solid var(--accent); outline-offset:3px; border-radius:12px}
+.hc-icon{flex:0 0 auto; width:1.5rem; font-size:1.5rem; line-height:1.2; text-align:center}
+.hc-body{flex:1 1 auto; min-width:0}
+.hc-title{font-size:1.02em; font-weight:700; line-height:1.5; color:var(--ink)}
+.hc-desc{margin-top:.1rem; font-size:.85em; line-height:1.6; color:var(--ink-faint);
+  display:-webkit-box; -webkit-line-clamp:1; -webkit-box-orient:vertical; overflow:hidden}
+.hc-count{display:inline-block; margin-left:.45em; padding:0 .5em; white-space:nowrap; font-size:.75em; font-weight:600;
+  line-height:1.7; color:var(--gold-deep); border:1px solid var(--line); border-radius:999px; vertical-align:.08em}
+.hc-arrow{flex:0 0 auto; align-self:center; font-size:.85em; color:var(--line-strong); transition:transform .18s ease, color .18s ease}
+.hc-card:hover .hc-arrow{color:var(--accent); transform:translateX(3px)}
+/* 深色模式：暗色 --line 与 --surface 几乎同色，描边提一级才看得见（中性提亮，不加彩） */
+[data-theme="dark"] .hc-card{border-color:var(--line-strong)}
+[data-theme="dark"] .hc-card:hover{border-color:var(--ink-faint); background:var(--surface-hover)}
+@media (prefers-reduced-motion:reduce){.hc-card,.hc-arrow{transition:none}.hc-card:hover{transform:none}.hc-card:hover .hc-arrow{transform:none}}
+@media (max-width:768px){
+  .home-cards{grid-template-columns:1fr; gap:.5rem; margin:1rem 0 1.3rem}
+  .hc-card{gap:.5rem; padding:.55rem .7rem; min-height:60px}
+  .hc-icon{width:1.35rem; font-size:1.35rem}
+  .hc-title{font-size:.95em; line-height:1.4}
+  .hc-desc{font-size:.78em; line-height:1.5}
+  .hc-count{font-size:.72em; vertical-align:0}
+  .hc-arrow{font-size:.8em}
+  .hc-card:hover{transform:none}}
+
 /* 首页导览 */
 .home-nav{margin-top:2.2rem; border-top:1px solid var(--line); padding-top:1.8rem}
 .hn-sec{margin-bottom:2.2rem}
@@ -2354,6 +2388,7 @@ function show(slug){
           + '<div class="welcome-sub"><span class="ws-line"></span>龙钦宁提资料库<span class="ws-line"></span></div>'
           + '<div class="welcome-lead">上师的开示、祖师的故事、可以听的法音，都在这里——想听法音往下看，想系统学习就按顺序读。<br>'
           + '<span class="welcome-hint">想找具体内容？点左上角 ☰ 打开目录，或直接在搜索框输入关键词。</span></div></div>'
+          + renderHomeCards()
           + '<div id="resume-listen-card"></div>'
           + '<section class="hn-sec home-update"><h2 class="hn-sec-title">最近更新 · ' + HOME_UPDATE_DATE + '</h2>'
           + HOME_UPDATE_HTML + '</section>'
@@ -3041,6 +3076,57 @@ function toggleAllDirGroups(btn){
   btn.textContent = isOpen ? '展开全部目录' : '折叠全部目录';
   // 恢复滚动位置，防止页面跳动
   window.scrollTo(0, scrollPos);
+}
+
+// ---- 首页分流卡片：给新人的四条主路径入口 ----
+// 规则：整卡是一个 <a>，卡内不放第二个可点元素；条数全部动态统计，不硬编码
+// 只增不删：不改动任何既有文案与结构，目录不存在则该卡不渲染
+function hcHref(slug){
+  // 中文目录名必须逐段 encodeURIComponent（与站点既有跳转写法完全一致）
+  return '#/' + slug.split('/').map(encodeURIComponent).join('/');
+}
+// 统计某个一级目录下所有非 index 页面数（递归含各级子目录；这三个目录下面全是子目录，必须递归）
+function hcCountUnder(dirName){
+  return PAGES.filter(function(x){
+    return !x.is_index && x.slug.indexOf(dirName + '/') === 0;
+  }).length;
+}
+function renderHomeCards(){
+  var items = [];
+  if (bySlug['音频资源/index'] && AUDIO_TRACKS.length > 0){
+    items.push({icon:'🎧', title:'听法音', desc:'路上、干活的时候，点开就能听', slug:'音频资源/index', count:AUDIO_TRACKS.length + ' 条'});
+  }
+  if (bySlug['上师开示/index']){
+    var nTalk = hcCountUnder('上师开示');
+    if (nTalk > 0){
+      items.push({icon:'📖', title:'读开示', desc:'不知道从哪开始？从第 1 篇顺着读', slug:'上师开示/index', count:nTalk + ' 篇'});
+    }
+  }
+  // 了解传承：按约定不显示条数
+  if (bySlug['龙钦宁提传承/index']){
+    items.push({icon:'🐉', title:'了解传承', desc:'先认识上师，看这个法怎么传下来的', slug:'龙钦宁提传承/index', count:''});
+  }
+  if (bySlug['书籍/index']){
+    var nBook = hcCountUnder('书籍');
+    if (nBook > 0){
+      items.push({icon:'📚', title:'查书', desc:'找某本书、某个推荐书目', slug:'书籍/index', count:nBook + ' 种'});
+    }
+  }
+  if (!items.length) return '';
+  var html = '<nav class="home-cards" aria-label="首页快捷入口">';
+  items.forEach(function(it){
+    html += '<a class="hc-card" href="' + hcHref(it.slug) + '">'
+      + '<span class="hc-icon" aria-hidden="true">' + it.icon + '</span>'
+      + '<div class="hc-body">'
+      + '<div class="hc-title">' + esc(it.title)
+      + (it.count ? '<span class="hc-count">' + esc(it.count) + '</span>' : '')
+      + '</div>'
+      + '<div class="hc-desc">' + esc(it.desc) + '</div>'
+      + '</div>'
+      + '<span class="hc-arrow" aria-hidden="true">›</span>'
+      + '</a>';
+  });
+  return html + '</nav>';
 }
 
 function renderHomeNav(){
