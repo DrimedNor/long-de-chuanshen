@@ -479,8 +479,6 @@ button:focus-visible, a:focus-visible{outline:2px solid var(--accent); outline-o
   background:rgba(38,32,28,.92);
 }
 .brand{font-size:1rem; font-weight:600; color:var(--ink); letter-spacing:.06em}
-/* 首页顶栏不再重复品牌名（welcome 区已有主视觉），非首页保留作位置标识 */
-body.is-home .brand{display:none}
 .brand small{color:var(--ink-faint); font-weight:400; margin-left:.5em; letter-spacing:0}
 .topbar .spacer{flex:1}
 .menu-btn{display:none; border:none; background:none; color:var(--ink);
@@ -1079,11 +1077,9 @@ button:active, .player-launch:active, .search-fab:active{transform:scale(.95)}
   .sidebar.open{transform:translateX(0)}
   .sidebar-close{display:block}
   .content{padding:1.1rem 1.1rem 9rem}
-  /* 首页 welcome 紧凑化：顶栏品牌名已隐藏（body.is-home），副题「龙钦宁提资料库」升级为移动端主视觉 */
+  /* 首页 welcome 紧凑化：标题由顶栏品牌栏承担（welcome .big 移动端隐藏避免重复），「龙钦宁提资料库」保持小字副标题 */
   .welcome{padding:.95rem .9rem .9rem; margin-bottom:.9rem}
   .welcome .big{display:none}
-  .welcome .welcome-sub{font-size:1.22em; color:var(--accent); font-weight:700; letter-spacing:.04em}
-  .welcome .ws-line{width:1.6em}
   .welcome .welcome-lead{margin-top:.6rem; line-height:1.7}
   /* 首页面包屑只有「主页」一词，移动端隐藏省一整条 */
   .crumb-home{display:none}
@@ -2257,8 +2253,6 @@ function show(slug){
   }
   if (currentSlug === slug) return;
   currentSlug = slug;
-  // 首页标记：顶栏隐藏品牌名（welcome 已有主视觉），CSS 据此收紧首页留白
-  document.body.classList.toggle('is-home', p.slug === 'index');
   var meta = '';
   if (p.meta.author) meta += '<span>作者：' + esc(p.meta.author) + '</span>';
   if (p.meta.source_url) meta += '<span class="src"><a href="' + esc(p.meta.source_url) + '" target="_blank" rel="noopener">查看原文 ↗</a></span>';
