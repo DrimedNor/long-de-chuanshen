@@ -840,7 +840,6 @@ button:active, .player-launch:active, .search-fab:active{transform:scale(.95)}
 .welcome .big{font-size:2.2em; color:var(--accent); font-weight:700; margin-bottom:.6rem; letter-spacing:.12em}
 .welcome .welcome-sub{display:flex; align-items:center; justify-content:center; gap:.9rem; color:var(--ink-faint); font-size:.95em}
 .welcome .ws-line{display:inline-block; width:3.2em; height:1px; background:var(--line-strong)}
-.welcome .welcome-lead{margin-top:1.1rem; color:var(--ink-soft); font-size:.98em; line-height:2}
 
 /* 首页分流卡片：给新人的四条主路径入口（听法音 / 读开示 / 了解传承 / 查书）
    只增不删：插在欢迎语之后，不动任何既有文案与结构
@@ -1087,7 +1086,6 @@ button:active, .player-launch:active, .search-fab:active{transform:scale(.95)}
   /* 首页 welcome 紧凑化：标题由顶栏品牌栏承担（welcome .big 移动端隐藏避免重复），「龙钦宁提资料库」保持小字副标题 */
   .welcome{padding:.95rem .9rem .9rem; margin-bottom:.9rem}
   .welcome-hero{margin:-.95rem calc(50% - 50vw) .8rem; height:33vh; border-radius:0}  .welcome .big{display:none}
-  .welcome .welcome-lead{margin-top:.6rem; line-height:1.7}
   /* 首页面包屑只有「主页」一词，移动端隐藏省一整条 */
   .crumb-home{display:none}
   .player{height:auto; min-height:34vh; max-height:34vh}
@@ -2306,8 +2304,7 @@ function show(slug){
           + [0,1,2,3,4].map(function(i){ return '<img class="hc-slide' + (i===0?' active':'') + '" src="assets/carousel-' + (i+1) + '.webp" alt="上师照片">'; }).join('')
           + '<div class="hc-dots">' + [0,1,2,3,4].map(function(i){ return '<span class="hc-dot' + (i===0?' active':'') + '"></span>'; }).join('') + '</div>'
           + '</div><div class="big">' + esc(SITE_TITLE) + '</div>'
-          + '<div class="welcome-sub"><span class="ws-line"></span>龙钦宁提资料库<span class="ws-line"></span></div>'
-          + '<div class="welcome-lead">上师的开示、祖师的故事、可以听的法音，都在这里……</div></div>'
+          + '<div class="welcome-sub"><span class="ws-line"></span>龙钦宁提资料库<span class="ws-line"></span></div></div>'
           + renderHomeCards()
           + '<div id="resume-listen-card"></div>'
           + '<section class="hn-sec home-update"><h2 class="hn-sec-title">最近更新 · ' + HOME_UPDATE_DATE + '</h2>'
