@@ -835,7 +835,6 @@ button:active, .player-launch:active, .search-fab:active{transform:scale(.95)}
 .welcome .welcome-sub{display:flex; align-items:center; justify-content:center; gap:.9rem; color:var(--ink-faint); font-size:.95em}
 .welcome .ws-line{display:inline-block; width:3.2em; height:1px; background:var(--line-strong)}
 .welcome .welcome-lead{margin-top:1.1rem; color:var(--ink-soft); font-size:.98em; line-height:2}
-.welcome .welcome-hint{color:var(--ink-faint); font-size:.9em}
 
 /* 首页分流卡片：给新人的四条主路径入口（听法音 / 读开示 / 了解传承 / 查书）
    只增不删：插在欢迎语之后，不动任何既有文案与结构
