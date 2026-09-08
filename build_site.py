@@ -867,11 +867,10 @@ button:active, .player-launch:active, .search-fab:active{transform:scale(.95)}
 [data-theme="dark"] .hc-card:hover{border-color:var(--ink-faint); background:var(--surface-hover)}
 @media (prefers-reduced-motion:reduce){.hc-card,.hc-arrow{transition:none}.hc-card:hover{transform:none}.hc-card:hover .hc-arrow{transform:none}}
 @media (max-width:768px){
-  .home-cards{grid-template-columns:1fr; gap:.5rem; margin:1rem 0 1.3rem}
-  .hc-card{gap:.5rem; padding:.55rem .7rem; min-height:60px}
+  .home-cards{grid-template-columns:repeat(2,minmax(0,1fr)); gap:.6rem; margin:1rem 0 1.3rem}
+  .hc-card{gap:.5rem; padding:.6rem .65rem; min-height:56px}
   .hc-icon{width:1.35rem; font-size:1.35rem}
   .hc-title{font-size:.95em; line-height:1.4}
-  .hc-desc{font-size:.78em; line-height:1.5}
   .hc-count{font-size:.72em; vertical-align:0}
   .hc-arrow{font-size:.8em}
   .hc-card:hover{transform:none}}
@@ -3044,7 +3043,6 @@ function renderHomeCards(){
       + '<div class="hc-title">' + esc(it.title)
       + (it.count ? '<span class="hc-count">' + esc(it.count) + '</span>' : '')
       + '</div>'
-      + '<div class="hc-desc">' + esc(it.desc) + '</div>'
       + '</div>'
       + '<span class="hc-arrow" aria-hidden="true">›</span>'
       + '</a>';
