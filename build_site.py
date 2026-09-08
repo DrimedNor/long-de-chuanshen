@@ -502,6 +502,7 @@ button:focus-visible, a:focus-visible{outline:2px solid var(--accent); outline-o
 .sidebar{
   width:300px; flex:0 0 300px; border-right:1px solid var(--line); padding:1.6rem 1.1rem;
   overflow-y:auto; position:sticky; top:53px; height:calc(100vh - 53px); background:var(--bg);
+  z-index:6; /* 压住首页 hero 大图左侧的全出血溢出部分 */
 }
 .sidebar .search{width:100%; padding:.6rem .8rem; border:1px solid var(--line);
   border-radius:8px; font-size:1.05rem; background:#fff; color:var(--ink); margin-bottom:1.2rem;
@@ -829,8 +830,8 @@ button:active, .player-launch:active, .search-fab:active{transform:scale(.95)}
 
 /* 欢迎页 */
 .welcome{text-align:center; padding:2.4rem 1rem 2rem; border-top:3px double var(--line-strong); border-bottom:1px solid var(--line); margin-bottom:1.6rem}
-/* 首页 hero 水墨横幅：负 margin 顶满 welcome 区两侧（贴住内容区边缘） */
-.welcome-hero{display:block; width:calc(100% + 2rem); max-width:none; height:220px; object-fit:cover; object-position:center 38%; margin:-2.4rem -1rem 1.3rem; border-radius:0 0 10px 10px}
+/* 首页 hero 大图：全出血铺到视口两边（margin-left calc 抵消内容区居中），高度占上 1/3 屏；桌面端左溢出部分被不透明侧栏遮住 */
+.welcome-hero{display:block; width:100vw; max-width:none; height:33vh; object-fit:cover; object-position:center 45%; margin:-2.4rem calc(50% - 50vw) 1.3rem; border-radius:0}
 .welcome .big{font-size:2.2em; color:var(--accent); font-weight:700; margin-bottom:.6rem; letter-spacing:.12em}
 .welcome .welcome-sub{display:flex; align-items:center; justify-content:center; gap:.9rem; color:var(--ink-faint); font-size:.95em}
 .welcome .ws-line{display:inline-block; width:3.2em; height:1px; background:var(--line-strong)}
@@ -1081,7 +1082,7 @@ button:active, .player-launch:active, .search-fab:active{transform:scale(.95)}
   .content{padding:1.1rem 1.1rem 9rem}
   /* 首页 welcome 紧凑化：标题由顶栏品牌栏承担（welcome .big 移动端隐藏避免重复），「龙钦宁提资料库」保持小字副标题 */
   .welcome{padding:.95rem .9rem .9rem; margin-bottom:.9rem}
-  .welcome-hero{width:calc(100% + 1.8rem); margin:-.95rem -.9rem .8rem; height:120px; border-radius:0 0 8px 8px}
+  .welcome-hero{margin:-.95rem calc(50% - 50vw) .8rem; height:33vh; border-radius:0}
   .welcome .big{display:none}
   .welcome .welcome-lead{margin-top:.6rem; line-height:1.7}
   /* 首页面包屑只有「主页」一词，移动端隐藏省一整条 */
@@ -2283,7 +2284,7 @@ function show(slug){
   // 文章页（非目录 index）不加分享按钮
   var inner = titleHtml + metaHtml + tocHtml + p.html;
   if (isHome){
-    inner = '<div class="welcome"><img class="welcome-hero" src="assets/hero-home.webp" alt="水墨山云横幅" width="1536" height="936"><div class="big">' + esc(SITE_TITLE) + '</div>'
+    inner = '<div class="welcome"><img class="welcome-hero" src="assets/hero-home.webp" alt="多智钦寺绿色山谷全景" width="1920" height="1079"><div class="big">' + esc(SITE_TITLE) + '</div>'
           + '<div class="welcome-sub"><span class="ws-line"></span>龙钦宁提资料库<span class="ws-line"></span></div>'
           + '<div class="welcome-lead">上师的开示、祖师的故事、可以听的法音，都在这里……</div></div>'
           + renderHomeCards()
