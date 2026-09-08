@@ -829,9 +829,11 @@ button:active, .player-launch:active, .search-fab:active{transform:scale(.95)}
 .meta .src a{color:var(--accent-soft)}
 
 /* 欢迎页 */
-.welcome{text-align:center; padding:2.4rem 1rem 2rem; border-top:3px double var(--line-strong); border-bottom:1px solid var(--line); margin-bottom:1.6rem}
-/* 首页 hero 轮播：全出血铺到视口两边，高度占上 1/3 屏；桌面端左溢出部分被不透明侧栏（z-index:6）遮住 */
-.welcome-hero{position:relative; width:100vw; max-width:none; height:33vh; margin:-2.4rem calc(50% - 50vw) 1.3rem; border-radius:0; overflow:hidden}
+.welcome{text-align:center; padding:2.4rem 1rem 2rem; border-bottom:1px solid var(--line); margin-bottom:1.6rem}
+/* 首页面包屑只有「主页」一词，全端隐藏 */
+.crumb-home{display:none}
+/* 首页 hero 轮播：全出血铺到视口两边，高度占上 1/3 屏；负 margin 抵消 content(2.6rem)+welcome(2.4rem) 顶距，图片直接顶到顶栏；桌面端左溢出部分被不透明侧栏（z-index:6）遮住 */
+.welcome-hero{position:relative; width:100vw; max-width:none; height:33vh; margin:-5rem calc(50% - 50vw) 1.3rem; border-radius:0; overflow:hidden}
 .welcome-hero .hc-slide{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:center 35%; opacity:0; transition:opacity 1s ease}
 .welcome-hero .hc-slide.active{opacity:1}
 .welcome-hero .hc-dots{position:absolute; bottom:10px; left:50%; transform:translateX(-50%); display:flex; gap:8px; z-index:2}
@@ -1085,9 +1087,8 @@ button:active, .player-launch:active, .search-fab:active{transform:scale(.95)}
   .content{padding:1.1rem 1.1rem 9rem}
   /* 首页 welcome 紧凑化：标题由顶栏品牌栏承担（welcome .big 移动端隐藏避免重复），「龙钦宁提资料库」保持小字副标题 */
   .welcome{padding:.95rem .9rem .9rem; margin-bottom:.9rem}
-  .welcome-hero{margin:-.95rem calc(50% - 50vw) .8rem; height:33vh; border-radius:0}  .welcome .big{display:none}
-  /* 首页面包屑只有「主页」一词，移动端隐藏省一整条 */
-  .crumb-home{display:none}
+  .welcome-hero{margin:-3.05rem calc(50% - 50vw) .8rem; height:33vh}
+  .welcome .big{display:none}
   .player{height:auto; min-height:34vh; max-height:34vh}
   .player.pl-open{max-height:80vh}
   .player .p-controls{gap:.7rem; padding:.85rem}
