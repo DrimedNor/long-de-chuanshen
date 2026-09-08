@@ -830,8 +830,13 @@ button:active, .player-launch:active, .search-fab:active{transform:scale(.95)}
 
 /* 欢迎页 */
 .welcome{text-align:center; padding:2.4rem 1rem 2rem; border-top:3px double var(--line-strong); border-bottom:1px solid var(--line); margin-bottom:1.6rem}
-/* 首页 hero 大图：全出血铺到视口两边（margin-left calc 抵消内容区居中），高度占上 1/3 屏；桌面端左溢出部分被不透明侧栏遮住 */
-.welcome-hero{display:block; width:100vw; max-width:none; height:33vh; object-fit:cover; object-position:center 45%; margin:-2.4rem calc(50% - 50vw) 1.3rem; border-radius:0}
+/* 首页 hero 轮播：全出血铺到视口两边，高度占上 1/3 屏；桌面端左溢出部分被不透明侧栏（z-index:6）遮住 */
+.welcome-hero{position:relative; width:100vw; max-width:none; height:33vh; margin:-2.4rem calc(50% - 50vw) 1.3rem; border-radius:0; overflow:hidden}
+.welcome-hero .hc-slide{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:center 35%; opacity:0; transition:opacity 1s ease}
+.welcome-hero .hc-slide.active{opacity:1}
+.welcome-hero .hc-dots{position:absolute; bottom:10px; left:50%; transform:translateX(-50%); display:flex; gap:8px; z-index:2}
+.welcome-hero .hc-dot{width:8px; height:8px; border-radius:50%; background:rgba(255,255,255,.45); transition:background .3s}
+.welcome-hero .hc-dot.active{background:#fff}
 .welcome .big{font-size:2.2em; color:var(--accent); font-weight:700; margin-bottom:.6rem; letter-spacing:.12em}
 .welcome .welcome-sub{display:flex; align-items:center; justify-content:center; gap:.9rem; color:var(--ink-faint); font-size:.95em}
 .welcome .ws-line{display:inline-block; width:3.2em; height:1px; background:var(--line-strong)}
@@ -1082,8 +1087,7 @@ button:active, .player-launch:active, .search-fab:active{transform:scale(.95)}
   .content{padding:1.1rem 1.1rem 9rem}
   /* 首页 welcome 紧凑化：标题由顶栏品牌栏承担（welcome .big 移动端隐藏避免重复），「龙钦宁提资料库」保持小字副标题 */
   .welcome{padding:.95rem .9rem .9rem; margin-bottom:.9rem}
-  .welcome-hero{margin:-.95rem calc(50% - 50vw) .8rem; height:33vh; border-radius:0}
-  .welcome .big{display:none}
+  .welcome-hero{margin:-.95rem calc(50% - 50vw) .8rem; height:33vh; border-radius:0}  .welcome .big{display:none}
   .welcome .welcome-lead{margin-top:.6rem; line-height:1.7}
   /* 首页面包屑只有「主页」一词，移动端隐藏省一整条 */
   .crumb-home{display:none}
@@ -2232,6 +2236,21 @@ window.addEventListener('beforeunload', function() {
 
 // ---- 显示页面 ----
 var currentSlug = null;
+// 首页 hero 轮播驱动：4.5s 自动淡切，圆点同步；重复进入首页时清旧定时器
+function initHeroCarousel(){
+  var box = document.getElementById('heroCarousel');
+  if (!box) return;
+  if (box._timer) clearInterval(box._timer);
+  var slides = box.querySelectorAll('.hc-slide');
+  var dots = box.querySelectorAll('.hc-dot');
+  if (!slides.length) return;
+  var idx = 0;
+  box._timer = setInterval(function(){
+    idx = (idx + 1) % slides.length;
+    slides.forEach(function(s, i){ s.classList.toggle('active', i === idx); });
+    dots.forEach(function(d, i){ d.classList.toggle('active', i === idx); });
+  }, 4500);
+}
 function show(slug){
   // 页面浏览统计：计算上一个页面的阅读时长并上报
   var now = Date.now() / 1000;
@@ -2284,7 +2303,10 @@ function show(slug){
   // 文章页（非目录 index）不加分享按钮
   var inner = titleHtml + metaHtml + tocHtml + p.html;
   if (isHome){
-    inner = '<div class="welcome"><img class="welcome-hero" src="assets/hero-home.webp" alt="多智钦寺绿色山谷全景" width="1920" height="1079"><div class="big">' + esc(SITE_TITLE) + '</div>'
+    inner = '<div class="welcome"><div class="welcome-hero" id="heroCarousel">'
+          + [0,1,2,3,4].map(function(i){ return '<img class="hc-slide' + (i===0?' active':'') + '" src="assets/carousel-' + (i+1) + '.webp" alt="上师照片">'; }).join('')
+          + '<div class="hc-dots">' + [0,1,2,3,4].map(function(i){ return '<span class="hc-dot' + (i===0?' active':'') + '"></span>'; }).join('') + '</div>'
+          + '</div><div class="big">' + esc(SITE_TITLE) + '</div>'
           + '<div class="welcome-sub"><span class="ws-line"></span>龙钦宁提资料库<span class="ws-line"></span></div>'
           + '<div class="welcome-lead">上师的开示、祖师的故事、可以听的法音，都在这里……</div></div>'
           + renderHomeCards()
@@ -2353,6 +2375,7 @@ function show(slug){
     inner += navHtml;
   }
   document.getElementById('content').innerHTML = '<div class="article">' + crumb + inner + '</div>';
+  if (isHome) initHeroCarousel();
   // 页面切换动画：强制reflow后重启动画
   var contentEl = document.getElementById('content');
   contentEl.classList.remove('page-anim');
@@ -5357,10 +5380,11 @@ window.addEventListener('scroll', function(){
     }
   }
 
-  // 计时起点 = 首次真实交互
+  // 计时起点 = 首次真实交互（须已通过密码验证，避免在密码页就弹新手指导）
   var interactionFired = false;
   function onFirstInteraction(){
     if (interactionFired) return;
+    if (localStorage.getItem(ACCESS_KEY) !== "true") return; // 未过密码：不触发也不置位，过密码后的首次交互再启动
     interactionFired = true;
     // 微信环境下延迟一点，避免和微信引导条重叠
     var delay = /MicroMessenger/i.test(navigator.userAgent) ? 3000 : 1000;
@@ -5859,11 +5883,12 @@ def main():
             shutil.copy2(icon_src, os.path.join(assets_dir, icon_name))
     print("PWA图标已复制: 6个")
 
-    # 首页 hero 水墨横幅（content/assets 被 walker 排除，这里显式复制）
-    hero_src = os.path.join(CONTENT_DIR, "assets", "hero-home.webp")
-    if os.path.exists(hero_src):
-        shutil.copy2(hero_src, os.path.join(assets_dir, "hero-home.webp"))
-        print("首页hero横幅已复制: hero-home.webp")
+    # 首页 hero 轮播图（content/assets 被 walker 排除，这里显式复制）
+    for _i in range(1, 6):
+        hero_src = os.path.join(CONTENT_DIR, "assets", "carousel-%d.webp" % _i)
+        if os.path.exists(hero_src):
+            shutil.copy2(hero_src, os.path.join(assets_dir, "carousel-%d.webp" % _i))
+    print("首页hero轮播图已复制: carousel-1~5.webp")
 
     # 复制 content/sw.js 到 dist/ 根（Service Worker：音频离线缓存 + 页面更新策略）
     sw_src = os.path.join(CONTENT_DIR, "sw.js")
