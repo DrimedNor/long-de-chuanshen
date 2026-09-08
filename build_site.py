@@ -788,6 +788,17 @@ button:active, .player-launch:active, .search-fab:active{transform:scale(.95)}
   box-shadow:0 4px 14px rgba(59,42,34,.28); display:flex; align-items:center; gap:.4rem;
   user-select:none;-webkit-user-select:none;touch-action:none; opacity:.85; transition:opacity .2s}
 .player-launch:hover{background:var(--accent-soft); opacity:1}
+/* 续听胶囊形态：白底描边 + 红色播放圆钮 + 两行文字（说明行 + 曲名行），仍可拖动记忆位置 */
+.player-launch.resume-mode{background:var(--surface); color:var(--ink); border:1px solid var(--line-strong);
+  padding:.5rem .95rem .5rem .55rem; gap:.6rem; box-shadow:0 4px 14px rgba(59,42,34,.16); opacity:1}
+.player-launch.resume-mode:hover{background:var(--surface-soft)}
+.player-launch .plr-play{flex:0 0 auto; width:36px; height:36px; border-radius:50%; background:var(--accent);
+  color:#fff; display:flex; align-items:center; justify-content:center; font-size:.85rem; padding-left:2px}
+.player-launch .plr-txt{display:flex; flex-direction:column; align-items:flex-start; min-width:0; max-width:9.5rem}
+.player-launch .plr-cap{font-size:.68rem; color:var(--ink-faint); line-height:1.35; white-space:nowrap}
+.player-launch .plr-title{font-size:.82rem; font-weight:600; color:var(--ink); line-height:1.4;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%}
+[data-theme="dark"] .player-launch.resume-mode{background:var(--surface-hover); border-color:var(--ink-faint)}
 .player-launch:active{cursor:grabbing}
 .player-launch.dragging{opacity:.85;box-shadow:0 6px 20px rgba(0,0,0,.4)}
 .player.show + .player-launch{display:none}
@@ -2307,7 +2318,6 @@ function show(slug){
           + '</div><div class="big">' + esc(SITE_TITLE) + '</div>'
           + '<div class="welcome-sub"><span class="ws-line"></span>龙钦宁提资料库<span class="ws-line"></span></div></div>'
           + renderHomeCards()
-          + '<div id="resume-listen-card"></div>'
           + '<section class="hn-sec home-update"><h2 class="hn-sec-title">最近更新 · ' + HOME_UPDATE_DATE + '</h2>'
           + HOME_UPDATE_HTML + '</section>'
           + p.html + renderHomeNav();
@@ -3204,40 +3214,28 @@ function renderHomeNav(){
   html.push('<div class="ai-ask-text"><div class="ai-ask-title">龙的传人 · AI 问答</div><div class="ai-ask-desc">点击打开问答面板，AI 基于上师开示等资料为你解答</div></div></div>');
   html.push('</div>');
   html.push('</section>');
-  // 首页渲染后填充「继续上次听」卡片（DOM 插入后执行）
-  setTimeout(initResumeListenCard, 0);
+  // 续听入口已合并进右下角悬浮按钮（refreshLaunch 里切换胶囊形态），首页不再插卡片
   return '<div class="home-nav">' + html.join('') + '</div>';
 }
 
-// ========== 首页「继续上次听」卡片（2026-09-07 音频优先改版）==========
-// 读取播放记忆（longchen-audio-cur / longchen-audio-pos-{idx}），回访用户一键续播；
-// 未听过或进度 <5 秒时不显示，对新人不打扰。
+// ========== 「继续听」悬浮胶囊（2026-09-08 由首页卡片合并进播放器悬浮按钮）==========
+// 读取播放记忆（longchen-audio-cur / longchen-audio-pos-{idx}），回访用户点悬浮按钮一键续播；
+// 未听过或进度 <5 秒时不显示，按钮回落为「🎧 播放器」，对新人不打扰。
 function fmtListenSec(s){
   s = Math.max(0, Math.floor(s || 0));
   var m = Math.floor(s / 60), ss = s % 60;
   return m + ':' + (ss < 10 ? '0' : '') + ss;
 }
-function initResumeListenCard(){
-  var box = document.getElementById('resume-listen-card');
-  if (!box) return;
+function getResumeInfo(){
   var idxStr = null;
   try { idxStr = localStorage.getItem('longchen-audio-cur'); } catch(e){}
-  if (idxStr === null || idxStr === '') return;
+  if (idxStr === null || idxStr === '') return null;
   var idx = parseInt(idxStr, 10);
-  if (isNaN(idx) || !AUDIO_TRACKS[idx]) return;
+  if (isNaN(idx) || !AUDIO_TRACKS[idx]) return null;
   var pos = 0;
   try { pos = parseFloat(localStorage.getItem('longchen-audio-pos-' + idx) || '0') || 0; } catch(e){}
-  if (pos < 5) return;
-  var t = AUDIO_TRACKS[idx];
-  var dur = t.duration ? ' · 共 ' + fmtListenSec(t.duration) : '';
-  box.innerHTML = '<div class="resume-card" style="margin:0 0 1.2rem;border:1px solid var(--line-strong);background:var(--surface);border-radius:12px;padding:.9rem 1rem;display:flex;align-items:center;gap:.85rem;">'
-    + '<button onclick="resumeLastAudio()" title="继续播放" aria-label="继续播放" style="flex:0 0 auto;width:46px;height:46px;border-radius:50%;border:none;background:var(--accent);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;">'
-    + '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></button>'
-    + '<div style="min-width:0;flex:1;">'
-    + '<div style="font-size:.75rem;color:var(--ink-faint);">继续上次听</div>'
-    + '<div style="font-size:.95rem;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">《' + esc(t.title) + '》</div>'
-    + '<div style="font-size:.75rem;color:var(--ink-faint);">已听至 ' + fmtListenSec(pos) + dur + '</div>'
-    + '</div></div>';
+  if (pos < 5) return null;
+  return { idx: idx, pos: pos, title: AUDIO_TRACKS[idx].title, duration: AUDIO_TRACKS[idx].duration };
 }
 function resumeLastAudio(){
   var idx = null;
@@ -4195,11 +4193,26 @@ function minimizePlayer(){
   updateMini();
   refreshLaunch();
 }
-// 悬浮「🎧 播放器」按钮：播放器或迷你条显示时隐藏，否则显示
+// 悬浮「🎧 播放器」按钮：播放器或迷你条显示时隐藏，否则显示；
+// 有播放记忆且未在播放时，按钮切换为「继续听」胶囊（标题+进度），点击一键续播
 function refreshLaunch(){
   var pShown = document.getElementById('player').classList.contains('show');
   var mShown = document.getElementById('playerMini').classList.contains('show');
-  document.getElementById('playerLaunch').style.display = (pShown || mShown) ? 'none' : '';
+  var btn = document.getElementById('playerLaunch');
+  btn.style.display = (pShown || mShown) ? 'none' : '';
+  // 有播放记忆且当前没有展开播放器/迷你条 → 显示续听胶囊（启动时静默恢复 curIdx>=0 也算「未在播放」）
+  var r = getResumeInfo();
+  if (r){
+    if (!btn.classList.contains('resume-mode')){
+      btn.classList.add('resume-mode');
+      btn.innerHTML = '<span class="plr-play" aria-hidden="true">▶</span>'
+        + '<span class="plr-txt"><span class="plr-cap">继续听 · 已听至 ' + fmtListenSec(r.pos) + '</span>'
+        + '<span class="plr-title">《' + esc(r.title) + '》</span></span>';
+    }
+  } else if (btn.classList.contains('resume-mode')){
+    btn.classList.remove('resume-mode');
+    btn.textContent = '🎧 播放器';
+  }
 }
 // 同步迷你条上的音频名与播放/暂停图标
 function updateMini(){
@@ -4904,6 +4917,11 @@ doPanelSearch();
       e.stopPropagation();
       return;
     }
+    // 续听胶囊形态：一键接着上次位置播放（playTrack 内部会打开完整播放器）
+    if (btn.classList.contains('resume-mode')) {
+      resumeLastAudio();
+      return;
+    }
     // 打开播放器
     document.getElementById('player').classList.add('show');
     document.getElementById('playerMini').classList.remove('show');
@@ -5071,6 +5089,7 @@ setTimeout(function(){
       document.getElementById('pPlay').textContent = '▶';
       renderPlist();
       updatePlayBtns();
+      refreshLaunch(); // 静默恢复后刷新悬浮按钮形态（切「继续听」胶囊）
     }
   } catch(e){}
 }, 1000);
