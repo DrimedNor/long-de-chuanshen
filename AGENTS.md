@@ -7,7 +7,7 @@
 - 自研零依赖 Python 构建器 `build_site.py`（约 5600 行），**无 package.json/node_modules**
 - 产物：`dist/index.html`（预渲染）+ `dist/pages/*.json`（按需）+ `knowledge.json`（AI 搜索语料）
 - 后端：Cloudflare Workers（`stats-auth-worker.js` 统计/密码/注册遮罩；`ai-ask-worker.js` AI 问答代理）+ KV
-- 托管：Cloudflare Pages，正式域名 longchen-nyingtik.wiki；**发布＝本地构建 + `npx wrangler pages deploy dist`，git push 不触发部署**
+- 托管：Cloudflare Pages，正式域名 longchen-nyingtik.wiki；**发布＝本地构建 + `npx wrangler pages deploy dist --branch=main`，git push 不触发部署**。⚠️ **生产分支是 main 而非 v5**：不带 `--branch=main` 会部署成 Preview（生产域名不更新）；git 仓库里并没有 main 分支，`--branch=main` 只是部署元数据（2026-09-09 实测踩坑，WorkBuddy）
 - git：工作分支 v5；每次发布必推 GitHub（`git@github.com:DrimedNor/longchen-nyingtik.git`）
 - 统计：GoatCounter + 自建设备统计（10 台密码 610 / 100 台注册审核）
 
