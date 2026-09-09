@@ -364,9 +364,9 @@ PAGE_TEMPLATE = r"""<!DOCTYPE html>
 <link rel="icon" type="image/png" sizes="64x64" href="assets/favicon-64.png">
 <title>@@SITE_TITLE@@</title>
 <!-- 分享卡片：微信/QQ 及社交平台抓取 -->
-<meta name="description" content="龙钦宁提资料库：上师开示、传承祖师、法音、书籍。">
+<meta name="description" content="龙钦宁提资料库：上师开示、传承祖师、法音、经典。">
 <meta property="og:title" content="龙的传人｜Longchen Nyingtik">
-<meta property="og:description" content="龙钦宁提资料库：上师开示、传承祖师、法音、书籍。">
+<meta property="og:description" content="龙钦宁提资料库：上师开示、传承祖师、法音、经典。">
 <meta property="og:image" content="https://longchen-nyingtik.wiki/assets/icon-512.png">
 <meta property="og:type" content="website">
 <style>
@@ -2102,6 +2102,8 @@ function renderNav(){
   // 一级目录固定顺序（与首页导览一致）；其余新增目录按名称追加在末尾
   // 简化导航：只显示一级菜单，点击直接进入该目录的 Index 页面（Index 内展示完整目录）
   var TOP_ORDER = ['上师开示', '龙钦宁提传承', '音频资源', '书籍', '关于本站'];
+  // 一级导航显示名（2026-09-09 命名优化）：目录名保持稳定，仅显示层改名
+  var TOP_LABELS = {'上师开示':'开示', '龙钦宁提传承':'传承', '音频资源':'法音', '书籍':'经典', '关于本站':'关于'};
   function topKey(name){ var i = TOP_ORDER.indexOf(name); return i < 0 ? 1000 : i; }
   var html = '';
   // AI 搜索入口（放在最上面，用分隔线隔开）
@@ -2117,7 +2119,7 @@ function renderNav(){
     html += '<div class="nav-sec" data-depth="0" data-slug="' + esc(target) + '">'
       + '<div class="nav-sec-head" data-slug="' + esc(target) + '">'
       + '<span class="nav-chev nav-chev-none">▸</span>'
-      + '<span class="dir-label">' + esc(cleanDirName(name)) + '</span></div></div>';
+      + '<span class="dir-label">' + esc(TOP_LABELS[name] || cleanDirName(name)) + '</span></div></div>';
   });
   nav.innerHTML = html;
   // 一级菜单点击：直接进入该目录 Index 页面
@@ -2392,7 +2394,7 @@ function show(slug){
   // 动态更新分享卡片meta标签（文章页提取标题+前100字正文）
   try {
     var shareTitle = p.is_index ? (SITE_TITLE + '｜龙钦宁提资料库') : (p.title + '｜' + SITE_TITLE);
-    var shareDesc = '龙钦宁提资料库：上师开示、传承祖师、法音、书籍。';
+    var shareDesc = '龙钦宁提资料库：上师开示、传承祖师、法音、经典。';
     if (!p.is_index && p.html) {
       var plainText = p.html.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
       if (plainText.length > 0) {
@@ -3024,7 +3026,7 @@ function hcCountUnder(dirName){
 function renderHomeCards(){
   var items = [];
   if (bySlug['音频资源/index'] && AUDIO_TRACKS.length > 0){
-    items.push({icon:'🎧', title:'听法音', desc:'路上、干活的时候，点开就能听', slug:'音频资源/index', count:AUDIO_TRACKS.length + ' 条'});
+    items.push({icon:'🎧', title:'跟念', desc:'路上、干活的时候，点开就能听', slug:'音频资源/index', count:AUDIO_TRACKS.length + ' 条'});
   }
   if (bySlug['上师开示/index']){
     var nTalk = hcCountUnder('上师开示');
@@ -3034,12 +3036,12 @@ function renderHomeCards(){
   }
   // 了解传承：按约定不显示条数
   if (bySlug['龙钦宁提传承/index']){
-    items.push({icon:'🐉', title:'了解传承', desc:'先认识上师，看这个法怎么传下来的', slug:'龙钦宁提传承/index', count:''});
+    items.push({icon:'🐉', title:'探传承', desc:'先认识上师，看这个法怎么传下来的', slug:'龙钦宁提传承/index', count:''});
   }
   if (bySlug['书籍/index']){
     var nBook = hcCountUnder('书籍');
     if (nBook > 0){
-      items.push({icon:'📚', title:'查书', desc:'找某本书、某个推荐书目', slug:'书籍/index', count:nBook + ' 种'});
+      items.push({icon:'📚', title:'查经典', desc:'找某本书、某个推荐书目', slug:'书籍/index', count:nBook + ' 种'});
     }
   }
   if (!items.length) return '';
@@ -3062,10 +3064,10 @@ function renderHomeNav(){
   var html = [];
   // 每个顶层目录板块的定制元信息（未配置的目录使用默认图标/说明）
   var META = {
-    '上师开示': {icon:'📖', title:'上师开示', desc:'', tips:true},
-    '龙钦宁提传承': {icon:'🐉', title:'龙钦宁提传承', desc:'龙钦宁提传承相关资料与祖师传记，点击进入查看。'},
-    '音频资源': {icon:'🎧', title:'音频资料', desc:'', audio:true, note:true},
-    '书籍': {icon:'📚', title:'书籍', desc:'精选读物与参考资料，点击进入查看。'}
+    '上师开示': {icon:'📖', title:'开示', desc:'', tips:true},
+    '龙钦宁提传承': {icon:'🐉', title:'传承', desc:'龙钦宁提传承相关资料与祖师传记，点击进入查看。'},
+    '音频资源': {icon:'🎧', title:'法音', desc:'', audio:true, note:true},
+    '书籍': {icon:'📚', title:'经典', desc:'精选读物与参考资料，点击进入查看。'}
   };
   // 固定首页板块顺序：一级目录按指定顺序，其余新增目录排在末尾
   // 2026-09-07 音频优先：用户习惯更偏"听"，音频资源提到首位（内部分组保持不变）
@@ -3105,30 +3107,19 @@ function renderHomeNav(){
         + '<button class="dir-play-all-btn" onclick="playAllAudio()" style="padding:.35rem .8rem;font-size:.85em;border:1px solid var(--accent);background:transparent;color:var(--accent);border-radius:4px;cursor:pointer;">▶ 播放全部</button>'
         + '<button class="dir-ai-search-btn" onclick="openSearchPanel()" style="padding:.35rem .8rem;font-size:.85em;border:1px solid var(--accent);background:transparent;color:var(--accent);border-radius:4px;cursor:pointer;">🔍 AI 搜索</button>'
         + '</div>');
-      // 按文件夹分组展示全部音频（简洁一级目录列表，与参考样式一致）
+      // 按文件夹分组展示全部音频：位于二级及以上子文件夹的按二级分组，否则按一级
       var _agroups = {};
+      var _agroupFirstPath = {};
       AUDIO_TRACKS.forEach(function(t, i){
         var folderParts = (t.folder || '其他音频').split('/');
-        var g;
-        if (folderParts[0] && folderParts[0].indexOf('上师法音') >= 0 && folderParts.length > 1) {
-          // 上师法音：使用二级文件夹名称
-          g = cleanDirName(folderParts[1]);
-        } else {
-          // 其他：使用一级文件夹名称
-          g = cleanDirName(folderParts[0]);
-        }
+        var g = (folderParts.length > 1) ? cleanDirName(folderParts[1]) : cleanDirName(folderParts[0]);
         (_agroups[g] = _agroups[g] || []).push({t: t, i: i});
+        if (_agroupFirstPath[g] === undefined) _agroupFirstPath[g] = (t.folder || '');
       });
       
-      // 按照指定顺序排序：上师开示（AI朗读）→ 上师赞歌 → 仪轨与经文 → 圣号与明咒
-      var sortOrder = ['上师开示（AI朗读）', '上师赞歌', '仪轨与经文（上师亲诵）', '圣号与明咒（上师亲诵）'];
+      // 按目录路径自然排序，保证与「上师开示」文章目录顺序一致（1→2→…→10）
       var _akeys = Object.keys(_agroups).sort(function(a, b){
-        var idxA = sortOrder.indexOf(a);
-        var idxB = sortOrder.indexOf(b);
-        if (idxA >= 0 && idxB >= 0) return idxA - idxB;
-        if (idxA >= 0) return -1;
-        if (idxB >= 0) return 1;
-        return a < b ? -1 : 1;
+        return natCmpPath(_agroupFirstPath[a], _agroupFirstPath[b]);
       });
       
       _akeys.forEach(function(g, gi){
@@ -3156,16 +3147,16 @@ function renderHomeNav(){
     } else if (meta.tips){
       // 上师开示：一级目录默认折叠，显示引导语和文章数量
       var TEACHING_INTROS = {
-        '信心之源': '伟大的传承、伟大的教法',
-        '为什么要修行': '弄明白为什么出发，才不会走偏',
+        '法脉故事': '伟大的传承、伟大的教法',
+        '为何修行': '弄明白为什么出发，才不会走偏',
         '寻找上师': '修行路上最重要的选择',
-        '如何依止上师': '找到了之后，怎样跟对人、走对路',
-        '踏上实修之路': '从闻思到实修，一步步走起来',
-        '做一个靠谱的修行人': '修行不是空谈，是做人做事',
-        '积累福报与资粮': '修行路上的粮草和盘缠',
-        '在生活中修行': '生活处处是修行',
-        '跨越修行的障碍': '正是修行时...',
-        '上师书信与节日开示': '上师的叮咛嘱咐...'
+        '依止上师': '找到了之后，怎样跟对人、走对路',
+        '实修之路': '从闻思到实修，一步步走起来',
+        '靠谱修行人': '修行不是空谈，是做人做事',
+        '福报资粮': '修行路上的粮草和盘缠',
+        '生活修行': '生活处处是修行',
+        '跨越障碍': '正是修行时...',
+        '书信与祝福': '上师的叮咛嘱咐...'
       };
       walkBlock(node, dirName, 0, '', true, TEACHING_INTROS).forEach(function(x){ html.push(x); });
     } else {
@@ -3178,7 +3169,7 @@ function renderHomeNav(){
         },
         '龙钦宁提传承': {
           '上师介绍': '上师的生平与事迹',
-          '传承祖师': '历代传承祖师的传记'
+          '历代祖师': '历代传承祖师的传记'
         }
       };
       var introMap = OTHER_INTROS[dirName] || null;
@@ -3256,16 +3247,16 @@ function renderFullDirTree(dirSlug){
   // 各一级目录的引导语配置
   var DIR_INTROS = {
     '上师开示': {
-      '信心之源': '伟大的传承、伟大的教法',
-      '为什么要修行': '弄明白为什么出发，才不会走偏',
+      '法脉故事': '伟大的传承、伟大的教法',
+      '为何修行': '弄明白为什么出发，才不会走偏',
       '寻找上师': '修行路上最重要的选择',
-      '如何依止上师': '找到了之后，怎样跟对人、走对路',
-      '踏上实修之路': '从闻思到实修，一步步走起来',
-      '做一个靠谱的修行人': '修行不是空谈，是做人做事',
-      '积累福报与资粮': '修行路上的粮草和盘缠',
-      '在生活中修行': '生活处处是修行',
-      '跨越修行的障碍': '正是修行时...',
-      '上师书信与节日开示': '上师的叮咛嘱咐...'
+      '依止上师': '找到了之后，怎样跟对人、走对路',
+      '实修之路': '从闻思到实修，一步步走起来',
+      '靠谱修行人': '修行不是空谈，是做人做事',
+      '福报资粮': '修行路上的粮草和盘缠',
+      '生活修行': '生活处处是修行',
+      '跨越障碍': '正是修行时...',
+      '书信与祝福': '上师的叮咛嘱咐...'
     },
     '音频资源': {
       '上师开示（AI朗读）': '文字转语音版开示，可直接收听',
@@ -3279,7 +3270,7 @@ function renderFullDirTree(dirSlug){
     },
     '龙钦宁提传承': {
       '上师介绍': '上师的生平与事迹',
-      '传承祖师': '历代传承祖师的传记'
+      '历代祖师': '历代传承祖师的传记'
     }
   };
   var topDir = segs[0];
@@ -3343,6 +3334,21 @@ function renderDirChildren(dirSlug){
   return html;
 }
 
+// ---- 目录路径自然排序：逐级比较目录名前的序号，保证 "2" 排在 "10" 之前 ----
+// 用于音频分组排序，使页面分组顺序与 content/ 目录（=上师开示文章目录）顺序严格一致
+// 缺失的层级视为更小（na = -1），使父分类排在其子分类之前
+function natCmpPath(a, b){
+  var ax = String(a || '').split('/'), bx = String(b || '').split('/');
+  for (var i = 0; i < Math.max(ax.length, bx.length); i++){
+    var sa = ax[i] || '', sb = bx[i] || '';
+    var ma = /^(\d+)/.exec(sa), mb = /^(\d+)/.exec(sb);
+    var na = ma ? parseInt(ma[1], 10) : -1, nb = mb ? parseInt(mb[1], 10) : -1;
+    if (na !== nb) return na - nb;
+    if (sa !== sb) return sa < sb ? -1 : 1;
+  }
+  return 0;
+}
+
 // ---- 音频资源页：按文件夹层级自动生成索引列表（folderKey=null 显示全部；否则显示该文件夹及其子文件夹音频）----
 function renderAudioListByFolder(folderKey){
   if (!AUDIO_TRACKS.length) return '';
@@ -3354,19 +3360,16 @@ function renderAudioListByFolder(folderKey){
   });
   if (!matched.length) return '';
   
-  // 按文件夹分组（上师法音按照二级文件夹分组，其他按照一级文件夹分组）
+  // 按文件夹分组：只要音频位于二级及以上子文件夹，就按二级文件夹分组
+  // ——「上师开示（AI朗读）」按「上师开示」的分类分组，「上师法音」按仪轨/明咒分组；
+  //    只有一级文件夹时（如「上师赞歌」）按一级分组。
   var groups = {};
+  var groupFirstPath = {};   // 组名 -> 首次出现的文件夹路径，用于按目录序号排序
   matched.forEach(function(o){
     var folderParts = o.f.split('/');
-    var g;
-    if (folderParts[0] && folderParts[0].indexOf('上师法音') >= 0 && folderParts.length > 1) {
-      // 上师法音：使用二级文件夹名称
-      g = cleanDirName(folderParts[1]);
-    } else {
-      // 其他：使用一级文件夹名称
-      g = cleanDirName(folderParts[0]);
-    }
+    var g = (folderParts.length > 1) ? cleanDirName(folderParts[1]) : cleanDirName(folderParts[0]);
     (groups[g] = groups[g] || []).push(o);
+    if (groupFirstPath[g] === undefined) groupFirstPath[g] = o.f;
   });
   
   var total = matched.length;
@@ -3383,15 +3386,9 @@ function renderAudioListByFolder(folderKey){
     + '<button class="dir-ai-search-btn" onclick="openSearchPanel()" style="padding:.35rem .8rem;font-size:.85em;border:1px solid var(--accent);background:transparent;color:var(--accent);border-radius:4px;cursor:pointer;">🔍 AI 搜索</button>'
     + '</div>';
   
-  // 按照指定顺序排序：上师开示（AI朗读）→ 上师赞歌 → 仪轨与经文 → 圣号与明咒
-  var sortOrder = ['上师开示（AI朗读）', '上师赞歌', '仪轨与经文（上师亲诵）', '圣号与明咒（上师亲诵）'];
+  // 按目录路径自然排序，保证与「上师开示」文章目录顺序一致（1→2→…→10）
   var keys = Object.keys(groups).sort(function(a, b){
-    var idxA = sortOrder.indexOf(a);
-    var idxB = sortOrder.indexOf(b);
-    if (idxA >= 0 && idxB >= 0) return idxA - idxB;
-    if (idxA >= 0) return -1;
-    if (idxB >= 0) return 1;
-    return a < b ? -1 : 1;
+    return natCmpPath(groupFirstPath[a], groupFirstPath[b]);
   });
   
   keys.forEach(function(g, gi){
@@ -5066,13 +5063,63 @@ function slugFromHash(){
   }
   return null;
 }
+// ---- 旧→新 路径别名（2026-09-09 目录命名优化）----
+// 目录改名会让旧分享链接失效；这里做一次整段替换，命中即跳到新地址，不留死链。
+// 只增不改：新链接不受影响；以后再有改名，往下面两张表追加即可。
+var SLUG_ALIASES = {
+  '上师开示/1. 信心之源/驿路感言': '上师开示/index',
+  '上师开示/5. 实修之路/5.3 修行方法/虚伪和修行不要混在一块儿！': '上师开示/9. 跨越障碍/虚伪和修行不要混在一块儿！',
+  '上师开示/6. 靠谱修行人/6.2 戒律自省/改掉内心的毛病': '上师开示/9. 跨越障碍/改掉内心的毛病',
+  '龙钦宁提传承/龙钦宁提相关网站与数字资源': '龙钦宁提传承/相关资源',
+  '龙钦宁提传承/龙的传人：龙钦宁提祖师“家谱”': '龙钦宁提传承/龙钦宁提“家谱”'
+};
+var PATH_ALIASES = [
+  // 子目录（长前缀）必须排在父目录（短前缀）之前
+  ['上师开示/2. 为什么要修行/2.1 诸行无常——生命就在呼吸间/', '上师开示/2. 为何修行/2.1 诸行无常/'],
+  ['上师开示/2. 为什么要修行/2.2 轮回过患——不要错过解脱的机会/', '上师开示/2. 为何修行/2.2 轮回过患/'],
+  ['上师开示/2. 为什么要修行/', '上师开示/2. 为何修行/'],
+  ['上师开示/4. 如何依止上师/4.1 合格的密宗弟子/', '上师开示/4. 依止上师/4.1 合格弟子/'],
+  ['上师开示/4. 如何依止上师/', '上师开示/4. 依止上师/'],
+  ['上师开示/5. 踏上实修之路/5.1  信心，一切成就的来源/', '上师开示/5. 实修之路/5.1 信心/'],
+  ['上师开示/5. 踏上实修之路/5.2 心态与发心/', '上师开示/5. 实修之路/5.2 发心/'],
+  ['上师开示/5. 踏上实修之路/5.3 修行程序与方法/', '上师开示/5. 实修之路/5.3 修行方法/'],
+  ['上师开示/5. 踏上实修之路/', '上师开示/5. 实修之路/'],
+  ['上师开示/6. 做一个靠谱的修行人/6.1 做人与品行/', '上师开示/6. 靠谱修行人/6.1 做人/'],
+  ['上师开示/6. 做一个靠谱的修行人/6.2 戒律与自省/', '上师开示/6. 靠谱修行人/6.2 戒律自省/'],
+  ['上师开示/6. 做一个靠谱的修行人/', '上师开示/6. 靠谱修行人/'],
+  ['上师开示/1. 信心之源/', '上师开示/1. 法脉故事/'],
+  ['上师开示/7. 积累福报与资粮/', '上师开示/7. 福报资粮/'],
+  ['上师开示/8. 在生活中修行/', '上师开示/8. 生活修行/'],
+  ['上师开示/9. 跨越修行的障碍/', '上师开示/9. 跨越障碍/'],
+  ['上师开示/10. 上师书信与节日开示/', '上师开示/10. 书信与祝福/'],
+  ['龙钦宁提传承/2. 传承祖师（待整理）/', '龙钦宁提传承/2. 历代祖师/']
+];
+function resolvePathAlias(slug){
+  if (!slug) return null;
+  if (SLUG_ALIASES[slug]) return SLUG_ALIASES[slug];
+  for (var i = 0; i < PATH_ALIASES.length; i++){
+    var a = PATH_ALIASES[i], oldDir = a[0].slice(0, -1);
+    if (slug === oldDir) return a[1] + 'index';
+    if (slug.indexOf(a[0]) === 0) return a[1] + slug.slice(a[0].length);
+  }
+  return null;
+}
+function routeWithAlias(slug){
+  var alias = resolvePathAlias(slug);
+  if (!alias) return false;
+  location.replace('#/' + alias.split('/').map(encodeURIComponent).join('/'));
+  return true;
+}
 window.addEventListener('hashchange', function(){
   var s = slugFromHash();
+  if (routeWithAlias(s)) return;
   if (s) show(s);
   else { var home = TREE.children && TREE.children.find(function(c){ return c.is_index; }); show(home ? home.slug : PAGES[0].slug); }
 });
 var initSlug = slugFromHash();
-if (initSlug){ show(initSlug); }
+if (initSlug && routeWithAlias(initSlug)) {
+  // 命中旧地址别名：已 replace 为新地址，由 hashchange 渲染
+} else if (initSlug){ show(initSlug); }
 else { var home = TREE.children && TREE.children.find(function(c){ return c.is_index; }); show(home ? home.slug : PAGES[0].slug); }
 
 // 恢复上次播放的音频（仅加载，不自动播放）
@@ -5381,7 +5428,7 @@ window.addEventListener('scroll', function(){
   function startGuidedTour(){
     // 第一个：目录引导
     var shown = showSpotlight(KEY.menu, 'menuBtn',
-      '<b>全部内容都在这里</b><br>点击左上角 ☰ 打开目录，上师开示、传承、法音、书籍都在里面。',
+      '<b>全部内容都在这里</b><br>点击左上角 ☰ 打开目录，上师开示、传承、法音、经典都在里面。',
       '1 / 2', '点击继续 →');
     if (shown) {
       // 关闭后自动显示第二个：AI搜索引导
