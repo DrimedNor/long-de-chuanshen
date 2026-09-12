@@ -163,15 +163,12 @@ function loginPageHTML(message) {
   return pageShell(
     "龙的传人｜登录",
     `<div class="lock">🔒</div>
-<h1>龙钦宁提资料库</h1>
-<p class="desc">本站为个人学习使用，非公开用途。<br>请使用用户名与密码登录。</p>
 <label for="u">用户名</label>
 <input id="u" type="text" autocomplete="username" autocapitalize="off" spellcheck="false">
 <label for="p">密码</label>
 <input id="p" type="password" autocomplete="current-password">
 <button id="go">进入网站</button>
 <div class="msg err" id="m">${esc(message || "")}</div>
-<div class="foot">如尚未获得账号，请联系站点主人获取邀请链接。</div>
 <script>
 (function(){
   // 保险措施：匿名访客落到登录页时，顺手清掉本机旧版留下的 Service Worker 缓存，
