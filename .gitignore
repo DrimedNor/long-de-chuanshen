@@ -34,3 +34,7 @@ content_backup_*/
 
 # 归档暂存区（2026-09-07 清理，见 _archive/2026-09-07-清理清单.md）
 _archive/
+
+# 2026-09-13 ZCode: 工具/临时残留不入库
+.playwright-cli/
+_kv_dellist.json
