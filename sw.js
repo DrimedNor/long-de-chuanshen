@@ -2,7 +2,9 @@
 // 字体缩放与导航增强之外的性能层：
 //  - 音频文件：cache-first（下载一次，之后秒开、可离线重听）
 //  - 其他同源资源/页面：stale-while-revalidate（先看缓存，后台更新）
-const CACHE = "lct-cache-v2"
+// 2026-09-12：全站改为登录后才可访问。缓存名升版 v2→v3，使新 SW 激活时
+//   自动清除旧版缓存，避免旧缓存在登录门槛之外仍然可见。
+const CACHE = "lct-cache-v3"
 const AUDIO_EXT = [".mp3", ".wav", ".ogg", ".m4a", ".aac", ".flac"]
 
 self.addEventListener("install", function () {

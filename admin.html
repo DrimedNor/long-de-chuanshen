@@ -1371,6 +1371,7 @@ async function loadInvites() {
       let html = '<table style="width:100%;border-collapse:collapse;font-size:.85rem;">';
       html += '<thead><tr style="background:var(--surface-soft);">';
       html += '<th style="padding:.6rem;text-align:left;border-bottom:2px solid var(--line);">邀请码</th>';
+      html += '<th style="padding:.6rem;text-align:left;border-bottom:2px solid var(--line);">邀请链接（发给对方）</th>';
       html += '<th style="padding:.6rem;text-align:center;border-bottom:2px solid var(--line);">使用次数</th>';
       html += '<th style="padding:.6rem;text-align:left;border-bottom:2px solid var(--line);">备注</th>';
       html += '<th style="padding:.6rem;text-align:left;border-bottom:2px solid var(--line);">创建时间</th>';
@@ -1380,9 +1381,10 @@ async function loadInvites() {
       
       for (const invite of data.invites) {
         const statusText = invite.status === 'active' ? '<span style="color:#2e7d32;">有效</span>' : '<span style="color:#c62828;">已失效</span>';
-        const registerLink = `https://longchen-nyingtik.wiki/#/register?code=${invite.code}`;
+        const registerLink = location.origin + '/invite/' + encodeURIComponent(invite.code);
         html += '<tr style="border-bottom:1px solid var(--line);">';
         html += `<td style="padding:.5rem;font-family:monospace;font-weight:600;">${invite.code}</td>`;
+        html += `<td style="padding:.5rem;font-family:monospace;font-size:.72rem;word-break:break-all;max-width:230px;">${registerLink}</td>`;
         html += `<td style="padding:.5rem;text-align:center;">${invite.usedCount || 0}</td>`;
         html += `<td style="padding:.5rem;">${invite.note || '-'}</td>`;
         html += `<td style="padding:.5rem;font-size:.8rem;">${new Date(invite.createdTime).toLocaleString('zh-CN')}</td>`;
@@ -1416,7 +1418,7 @@ async function createInvite() {
         'Content-Type': 'application/json',
         'X-Admin-Password': adminPassword
       },
-      body: JSON.stringify({ code: code || null, note: note })
+      body: JSON.stringify({ code: code || null, note: note, maxUses: 1 })
     });
     const data = await response.json();
 
@@ -1435,7 +1437,7 @@ async function createInvite() {
 
 // 复制邀请链接（2026-09-07：toast/模态框替换原生 alert/prompt）
 async function copyInviteLink(code) {
-  const link = 'https://longchen-nyingtik.wiki/#/register?code=' + code;
+  const link = location.origin + '/invite/' + encodeURIComponent(code);
   try {
     await navigator.clipboard.writeText(link);
     showToast('邀请链接已复制到剪贴板', 'ok');

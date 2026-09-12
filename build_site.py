@@ -354,11 +354,14 @@ PAGE_TEMPLATE = r"""<!DOCTYPE html>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="龙的传人">
-<!-- 禁止国内搜索引擎收录（百度/搜狗/360/字节），允许国外搜索引擎（Google/Bing/DuckDuckGo）-->
-<meta name="baiduspider" content="noindex, nofollow, noarchive">
-<meta name="sogou" content="noindex, nofollow, noarchive">
-<meta name="360spider" content="noindex, nofollow, noarchive">
-<meta name="bytespider" content="noindex, nofollow, noarchive">
+<!-- 全站禁止一切搜索引擎与 AI 爬虫收录（2026-09-12 起本站改为登录后才可访问）-->
+<meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+<meta name="googlebot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+<meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+<meta name="baiduspider" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+<meta name="sogou" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+<meta name="360spider" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+<meta name="bytespider" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
 <!-- PNG版favicon（替代原SVG，确保PWA图标正常显示） -->
 <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
 <link rel="icon" type="image/png" sizes="64x64" href="assets/favicon-64.png">
@@ -1284,16 +1287,9 @@ img{height:auto;max-width:100%}
 </head>
 <body>
 
-<!-- 访问密码保护遮罩层（默认隐藏） -->
-<div class="access-overlay" id="accessOverlay" style="display:none">
-  <div class="access-box">
-    <div class="access-icon">🔒</div>
-    <p class="access-desc">本站仅为个人学习使用，访问请输入密码：</p>
-    <input type="password" id="accessPasswordInput" placeholder="请输入访问密码" />
-    <button class="access-btn" id="accessSubmitBtn">进入网站</button>
-    <div class="access-error" id="accessError"></div>
-  </div>
-</div>
+<!-- 访问门槛已移至服务端（Cloudflare Pages Functions 中间件 functions/_middleware.js）
+     2026-09-12：匿名访客在到达本页面之前就会被拦下并看到登录页，
+     因此站内不再需要密码遮罩层，也不存在任何注册入口。 -->
 
 <!-- PWA安装引导浮层（默认隐藏） -->
 <div class="pwa-install-hint" id="pwaInstallHint" style="display:none">
@@ -1467,9 +1463,12 @@ function fetchWithDevice(url, options) {
   return fetch(url, options);
 }
 
-// 检查是否需要密码或注册
+// 访问门槛已上移到服务端（functions/_middleware.js）。
+// 能加载到本页面，即代表已通过用户名+密码登录鉴权；这里只做设备访问统计上报。
 async function checkAccess() {
-  // 无论是否已验证，都先调用 /api/track 记录设备访问
+  try {
+    localStorage.setItem(ACCESS_KEY, "true"); // 供站内引导语等逻辑判断「已进入网站」
+  } catch (e) {}
   if (STATS_API) {
     try {
       await fetchWithDevice(STATS_API + "/api/track");
@@ -1477,123 +1476,12 @@ async function checkAccess() {
       console.warn("设备统计上报失败:", e);
     }
   }
-  
-  // 检查临时访问链接
-  var urlParams = new URLSearchParams(window.location.search);
-  var tempToken = urlParams.get('temp');
-  if (tempToken && STATS_API) {
-    try {
-      var tempResp = await fetch(STATS_API + "/api/verify-temp", {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token: tempToken })
-      });
-      var tempData = await tempResp.json();
-      if (tempData.success) {
-        // 临时链接验证通过，设置访问权限
-        localStorage.setItem(ACCESS_KEY, "true");
-        // 从URL中移除temp参数，避免刷新时重复验证
-        var newUrl = window.location.pathname + window.location.hash;
-        window.history.replaceState({}, document.title, newUrl);
-        return true;
-      }
-    } catch (e) {
-      console.warn("临时链接验证失败:", e);
-    }
-  }
-  
-  // 已验证过，直接通过
-  if (localStorage.getItem(ACCESS_KEY) === "true") {
-    return true;
-  }
-  
-  if (!STATS_API) return true;
-  
-  try {
-    var response = await fetchWithDevice(STATS_API + "/api/track");
-    var data = await response.json();
-    
-    // 不需要密码，直接通过（注册功能已移除，needRegister 不再处理）
-    if (!data.needPassword) {
-      return true;
-    }
-    
-    // 需要密码
-    showAccessOverlay();
-    return false;
-  } catch (e) {
-    console.warn("统计 API 调用失败，默认放行:", e);
-    return true;
-  }
+  return true;
 }
 
-// 显示密码输入界面
-function showAccessOverlay() {
-  var overlay = document.getElementById('accessOverlay');
-  if (overlay) {
-    overlay.style.display = 'flex';
-    document.body.style.overflow = 'hidden';
-    setTimeout(function(){
-      var input = document.getElementById('accessPasswordInput');
-      if (input) input.focus();
-    }, 100);
-  }
-}
-
-// 隐藏所有遮罩
-function hideOverlays() {
-  var overlays = document.querySelectorAll('.access-overlay');
-  overlays.forEach(function(o) { o.style.display = 'none'; });
-  document.body.style.overflow = '';
-}
-
-// 验证密码
-async function verifyAccessPassword() {
-  var input = document.getElementById('accessPasswordInput');
-  var errorDiv = document.getElementById('accessError');
-  var password = input ? input.value : '';
-  
-  if (!password) {
-    if (errorDiv) errorDiv.textContent = '请输入访问密码';
-    return;
-  }
-  
-  try {
-    var response = await fetchWithDevice(STATS_API + "/api/verify-password", {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password: password })
-    });
-    var data = await response.json();
-    
-    if (data.success) {
-      localStorage.setItem(ACCESS_KEY, "true");
-      hideOverlays();
-    } else {
-      if (errorDiv) errorDiv.textContent = data.message || '密码错误，请重试';
-      if (input) input.value = '';
-    }
-  } catch (e) {
-    console.warn("密码验证失败:", e);
-    if (errorDiv) errorDiv.textContent = '网络错误，请稍后重试';
-  }
-}
-
-// 初始化访问控制
+// 初始化（访问门槛已在服务端，这里只剩 PWA 安装引导的接线）
 function initAccessControl() {
-  // 密码提交按钮
-  var submitBtn = document.getElementById('accessSubmitBtn');
-  if (submitBtn) submitBtn.onclick = verifyAccessPassword;
-  
-  // 密码回车提交
-  var input = document.getElementById('accessPasswordInput');
-  if (input) {
-    input.addEventListener('keydown', function(e){
-      if (e.key === 'Enter') verifyAccessPassword();
-    });
-  }
-  
-  // PWA手动安装按钮：从密码页后移到站内「像 App 一样使用本站」引导浮层（与新手指引同处）
+  // PWA手动安装按钮：站内「像 App 一样使用本站」引导浮层（与新手指引同处）
   var deferredInstallPrompt = null;
   var installBtn = document.getElementById('pwaInstallBtn');
   
@@ -5304,12 +5192,7 @@ window.addEventListener('scroll', function(){
   if (!/MicroMessenger/i.test(navigator.userAgent)) return;      // 仅微信内显示
   if (localStorage.getItem('lct-wechat-tip-dismissed')) return;    // 关闭过不再显示
   function showTip(){
-    // 密码遮罩层显示时不显示引导条（用户还没进网站，引导没用）
-    var overlay = document.getElementById('accessOverlay');
-    if (overlay && overlay.style.display !== 'none') {
-      setTimeout(showTip, 1000); // 等1秒再检查
-      return;
-    }
+    // 访问门槛在服务端，能进到站内即已登录，直接显示引导条
     var bar = document.createElement('div');
     bar.className = 'wechat-tip';
     bar.innerHTML = '想把它装到手机桌面、像 APP 一样使用？点右上角 <b>···</b> → 「在浏览器打开」，再用浏览器菜单「添加到主屏幕」';
@@ -5878,11 +5761,34 @@ def main():
     with open(out_path, "w", encoding="utf-8") as f:
         f.write(html_out)
 
-    # 生成 robots.txt：禁止国内搜索引擎收录（降低合规风险），允许国外搜索引擎收录（利益有缘人）
+    # 生成 robots.txt：全站禁止一切搜索引擎收录
+    # 2026-09-12 变更：本站已改为「登录后才可访问」，不再区分国内/国外引擎，
+    # 一律 Disallow: /。逐个列明主要爬虫，避免被 Cloudflare 托管 robots 段里的
+    # `User-agent: * / Allow: /` 抵消（同名组下具体 UA 组的规则优先）。
     robots_path = os.path.join(DIST_DIR, "robots.txt")
     with open(robots_path, "w", encoding="utf-8") as f:
         f.write(
-            "# 禁止国内搜索引擎\n"
+            "# 本站为个人学习用途，非公开站点。\n"
+            "# 全站所有页面与静态资源均需登录鉴权后访问，禁止一切搜索引擎与 AI 爬虫收录。\n\n"
+            "User-agent: *\n"
+            "Disallow: /\n\n"
+            "# —— 主要搜索引擎（逐一列明以确保生效）——\n"
+            "User-agent: Googlebot\n"
+            "Disallow: /\n\n"
+            "User-agent: Googlebot-Image\n"
+            "Disallow: /\n\n"
+            "User-agent: Googlebot-News\n"
+            "Disallow: /\n\n"
+            "User-agent: Google-Extended\n"
+            "Disallow: /\n\n"
+            "User-agent: Bingbot\n"
+            "Disallow: /\n\n"
+            "User-agent: Slurp\n"
+            "Disallow: /\n\n"
+            "User-agent: DuckDuckBot\n"
+            "Disallow: /\n\n"
+            "User-agent: YandexBot\n"
+            "Disallow: /\n\n"
             "User-agent: Baiduspider\n"
             "Disallow: /\n\n"
             "User-agent: Baiduspider-news\n"
@@ -5895,17 +5801,45 @@ def main():
             "Disallow: /\n\n"
             "User-agent: 360Spider\n"
             "Disallow: /\n\n"
-            "User-agent: 360spider\n"
-            "Disallow: /\n\n"
             "User-agent: Yisouspider\n"
             "Disallow: /\n\n"
             "User-agent: Bytespider\n"
             "Disallow: /\n\n"
             "User-agent: Bytespider-image\n"
             "Disallow: /\n\n"
-            "# 允许国外搜索引擎（Google/Bing/DuckDuckGo/Yandex 等）\n"
-            "User-agent: *\n"
-            "Allow: /\n"
+            "# —— AI 训练/抓取类爬虫 ——\n"
+            "User-agent: GPTBot\n"
+            "Disallow: /\n\n"
+            "User-agent: ChatGPT-User\n"
+            "Disallow: /\n\n"
+            "User-agent: CCBot\n"
+            "Disallow: /\n\n"
+            "User-agent: ClaudeBot\n"
+            "Disallow: /\n\n"
+            "User-agent: Claude-Web\n"
+            "Disallow: /\n\n"
+            "User-agent: anthropic-ai\n"
+            "Disallow: /\n\n"
+            "User-agent: PerplexityBot\n"
+            "Disallow: /\n\n"
+            "User-agent: Applebot\n"
+            "Disallow: /\n\n"
+            "User-agent: Applebot-Extended\n"
+            "Disallow: /\n\n"
+            "User-agent: Amazonbot\n"
+            "Disallow: /\n\n"
+            "User-agent: meta-externalagent\n"
+            "Disallow: /\n\n"
+            "User-agent: FacebookBot\n"
+            "Disallow: /\n\n"
+            "User-agent: SemrushBot\n"
+            "Disallow: /\n\n"
+            "User-agent: AhrefsBot\n"
+            "Disallow: /\n\n"
+            "User-agent: MJ12bot\n"
+            "Disallow: /\n\n"
+            "User-agent: DotBot\n"
+            "Disallow: /\n"
         )
 
     # 复制本地音频到 dist/audio/（覆盖式复制；旧残留由构建前 shell rm 清理）
@@ -5961,6 +5895,16 @@ def main():
     _headers_src = os.path.join(os.path.dirname(os.path.abspath(__file__)), "cloudflare", "_headers")
     if os.path.exists(_headers_src):
         shutil.copy2(_headers_src, os.path.join(DIST_DIR, "_headers"))
+
+    # 复制 _routes.json（2026-09-12 新增，全站访问门槛必需）
+    # include:["/*"] + exclude:[] 强制所有请求都先经 functions/_middleware.js 鉴权；
+    # 若此文件缺失，wrangler 会自动生成排除静态资源的规则，mp3/json/首页将绕过鉴权直接暴露。
+    _routes_src = os.path.join(os.path.dirname(os.path.abspath(__file__)), "_routes.json")
+    if os.path.exists(_routes_src):
+        shutil.copy2(_routes_src, os.path.join(DIST_DIR, "_routes.json"))
+        print("访问门槛路由表已复制: dist/_routes.json")
+    else:
+        print("⚠️ 警告：未找到 _routes.json——全站访问门槛将失效！")
 
     # 复制 PWA manifest.json 到 dist/ 根（支持添加到主屏幕，iOS后台播放正道）
     manifest_src = os.path.join(os.path.dirname(os.path.abspath(__file__)), "manifest.json")

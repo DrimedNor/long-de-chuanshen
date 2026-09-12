@@ -155,6 +155,13 @@ export default {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           });
         }
+        const inviteMaxUses = invite.maxUses === 0 ? Infinity : (invite.maxUses || 1);
+        if ((invite.usedCount || 0) >= inviteMaxUses) {
+          return new Response(JSON.stringify({ success: false, message: '邀请码使用次数已达上限' }), {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
         
         // 检查用户名是否已存在
         const existingUser = await env.STATS_KV.get('user_' + username, 'json');
@@ -268,8 +275,16 @@ export default {
         user.loginCount = (user.loginCount || 0) + 1;
         await env.STATS_KV.put('user_' + username, JSON.stringify(user));
         
-        // 生成登录token（简单实现，实际应使用JWT）
-        const token = simpleHash(username + Date.now() + Math.random());
+        // 生成登录会话：写入 KV（30 天 TTL），Pages 中间件凭此 token 放行全站
+        const token = 'sess_' + simpleHash(username + Date.now() + Math.random());
+        await env.STATS_KV.put('session_' + token, JSON.stringify({
+          username: user.username,
+          nickname: user.nickname,
+          status: user.status,
+          ip: clientIP,
+          deviceId: deviceId,
+          createdAt: new Date().toISOString(),
+        }), { expirationTtl: 60 * 60 * 24 * 30 });
         
         return new Response(JSON.stringify({ 
           success: true, 
@@ -285,6 +300,91 @@ export default {
         });
       }
       
+      // 路由：会话校验（Pages 中间件每个请求调用，用于全站访问门槛）
+      if (path === '/api/session/verify' || path === '/session/verify') {
+        if (request.method !== 'POST') {
+          return new Response(JSON.stringify({ success: false, message: 'Method not allowed' }), {
+            status: 405,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+        const body = await request.json().catch(() => ({}));
+        const session = body.token ? await env.STATS_KV.get('session_' + body.token, 'json') : null;
+        if (!session) {
+          return new Response(JSON.stringify({ success: false, message: '会话无效或已过期' }), {
+            status: 401,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+        // 用户被拒/删号时，已发会话立即失效
+        const owner = await env.STATS_KV.get('user_' + session.username, 'json');
+        if (!owner || owner.status !== 'approved') {
+          await env.STATS_KV.delete('session_' + body.token).catch(() => {});
+          return new Response(JSON.stringify({ success: false, message: '账号状态异常' }), {
+            status: 401,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+        return new Response(JSON.stringify({
+          success: true,
+          user: { username: session.username, nickname: session.nickname }
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      // 路由：退出登录（删除会话）
+      if (path === '/api/logout' || path === '/logout') {
+        const body = request.method === 'POST' ? await request.json().catch(() => ({})) : {};
+        if (body.token) {
+          await env.STATS_KV.delete('session_' + body.token).catch(() => {});
+        }
+        return new Response(JSON.stringify({ success: true, message: '已退出登录' }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      // 路由：邀请码校验（注册页在展示表单前先验一次）
+      if (path === '/api/invite/check' || path === '/invite/check') {
+        const body = request.method === 'POST' ? await request.json().catch(() => ({})) : {};
+        const inviteCode = (body.inviteCode || '').trim();
+        if (!inviteCode) {
+          return new Response(JSON.stringify({ success: false, message: '缺少邀请码' }), {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+        const invite = await env.STATS_KV.get('invite_' + inviteCode, 'json');
+        if (!invite) {
+          return new Response(JSON.stringify({ success: false, message: '邀请码无效' }), {
+            status: 404,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+        if (invite.status !== 'active') {
+          return new Response(JSON.stringify({ success: false, message: '邀请码已失效' }), {
+            status: 410,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+        if (invite.expiresAt && new Date(invite.expiresAt) < new Date()) {
+          return new Response(JSON.stringify({ success: false, message: '邀请码已过期' }), {
+            status: 410,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+        const maxUses = invite.maxUses === 0 ? Infinity : (invite.maxUses || 1);
+        if ((invite.usedCount || 0) >= maxUses) {
+          return new Response(JSON.stringify({ success: false, message: '邀请码使用次数已达上限' }), {
+            status: 410,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+        return new Response(JSON.stringify({ success: true, note: invite.note || '' }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
       // 路由：获取用户信息
       if (path === '/api/user/info' || path === '/user/info') {
         if (request.method !== 'POST') {

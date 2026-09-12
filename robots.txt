@@ -1,4 +1,38 @@
-# 禁止国内搜索引擎
+# 注意：本文件是「构建器生成内容」的镜像，仅作仓库内留档。
+# 真正上线的是 build_site.py 写入 dist/robots.txt 的那一份（本文件不会被复制到 dist/）。
+# 2026-09-12：本站改为「登录后才可访问」，全站不再区分国内/国外引擎，一律禁止收录。
+
+# 本站为个人学习用途，非公开站点。
+# 全站所有页面与静态资源均需登录鉴权后访问，禁止一切搜索引擎与 AI 爬虫收录。
+
+User-agent: *
+Disallow: /
+
+# —— 主要搜索引擎（逐一列明以确保生效）——
+User-agent: Googlebot
+Disallow: /
+
+User-agent: Googlebot-Image
+Disallow: /
+
+User-agent: Googlebot-News
+Disallow: /
+
+User-agent: Google-Extended
+Disallow: /
+
+User-agent: Bingbot
+Disallow: /
+
+User-agent: Slurp
+Disallow: /
+
+User-agent: DuckDuckBot
+Disallow: /
+
+User-agent: YandexBot
+Disallow: /
+
 User-agent: Baiduspider
 Disallow: /
 
@@ -17,9 +51,6 @@ Disallow: /
 User-agent: 360Spider
 Disallow: /
 
-User-agent: 360spider
-Disallow: /
-
 User-agent: Yisouspider
 Disallow: /
 
@@ -29,6 +60,51 @@ Disallow: /
 User-agent: Bytespider-image
 Disallow: /
 
-# 允许国外搜索引擎（Google/Bing/DuckDuckGo/Yandex 等）
-User-agent: *
-Allow: /
+# —— AI 训练/抓取类爬虫 ——
+User-agent: GPTBot
+Disallow: /
+
+User-agent: ChatGPT-User
+Disallow: /
+
+User-agent: CCBot
+Disallow: /
+
+User-agent: ClaudeBot
+Disallow: /
+
+User-agent: Claude-Web
+Disallow: /
+
+User-agent: anthropic-ai
+Disallow: /
+
+User-agent: PerplexityBot
+Disallow: /
+
+User-agent: Applebot
+Disallow: /
+
+User-agent: Applebot-Extended
+Disallow: /
+
+User-agent: Amazonbot
+Disallow: /
+
+User-agent: meta-externalagent
+Disallow: /
+
+User-agent: FacebookBot
+Disallow: /
+
+User-agent: SemrushBot
+Disallow: /
+
+User-agent: AhrefsBot
+Disallow: /
+
+User-agent: MJ12bot
+Disallow: /
+
+User-agent: DotBot
+Disallow: /
